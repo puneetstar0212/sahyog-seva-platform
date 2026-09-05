@@ -1,0 +1,367 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SahyogSeva - Customer Dashboard</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Work+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for category scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e9e1dc",
+                        "on-background": "#1e1b18",
+                        "primary-fixed": "#ffdbcb",
+                        "on-secondary-fixed": "#321300",
+                        "surface-container-low": "#fbf2ed",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#54433b",
+                        "on-secondary-container": "#692f00",
+                        "inverse-on-surface": "#f8efea",
+                        "outline-variant": "#dac2b7",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#341100",
+                        "primary": "#541f00",
+                        "secondary": "#994700",
+                        "surface-dim": "#e1d8d4",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#924b23",
+                        "tertiary-container": "#48453d",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#34302c",
+                        "tertiary-fixed": "#e8e2d7",
+                        "primary-fixed-dim": "#ffb692",
+                        "surface-bright": "#fff8f5",
+                        "surface-variant": "#e9e1dc",
+                        "outline": "#87736a",
+                        "on-primary-container": "#f89d6e",
+                        "secondary-fixed": "#ffdbc8",
+                        "surface-container-high": "#efe6e2",
+                        "tertiary-fixed-dim": "#cbc6bc",
+                        "secondary-container": "#ff8e3f",
+                        "on-surface": "#1e1b18",
+                        "surface-container": "#f5ece7",
+                        "secondary-fixed-dim": "#ffb68a",
+                        "surface": "#fff8f5",
+                        "on-tertiary-fixed": "#1d1c15",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#73330c",
+                        "on-tertiary-fixed-variant": "#49473f",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#743500",
+                        "on-primary-fixed-variant": "#74340d",
+                        "tertiary": "#312f28",
+                        "on-tertiary-container": "#b7b3a9",
+                        "inverse-primary": "#ffb692",
+                        "background": "#fff8f5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit-lg": "24px",
+                        "container-max": "1280px",
+                        "unit-sm": "8px",
+                        "gutter": "24px",
+                        "unit-xs": "4px",
+                        "margin-mobile": "20px",
+                        "margin-desktop": "64px",
+                        "unit-xl": "48px",
+                        "unit-md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "label-lg": ["Work Sans"],
+                        "body-lg": ["Work Sans"],
+                        "headline-sm": ["Manrope"],
+                        "label-md": ["Work Sans"],
+                        "body-sm": ["Work Sans"],
+                        "headline-xl": ["Manrope"],
+                        "body-md": ["Work Sans"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-xl": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md pb-24 md:pb-0 min-h-screen relative">
+<!-- TopAppBar -->
+<header class="bg-surface w-full top-0 sticky shadow-sm z-50 transition-colors flex justify-between items-center px-margin-mobile md:px-margin-desktop py-unit-sm">
+<div class="flex items-center gap-unit-md">
+<button class="md:hidden text-primary hover:bg-surface-container-low transition-colors rounded-full p-2 active:scale-95 duration-100 flex items-center justify-center">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">SahyogSeva</h1>
+</div>
+<!-- Desktop Nav Cluster -->
+<nav class="hidden md:flex items-center gap-unit-lg">
+<a class="text-primary font-label-lg text-label-lg border-b-2 border-primary pb-1" href="#">Home</a>
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#">Bookings</a>
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#">Safety</a>
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#">Profile</a>
+</nav>
+<div class="flex items-center">
+<img alt="User profile photo" class="w-10 h-10 rounded-full object-cover shadow-sm bg-surface-container-highest" data-alt="A close-up, softly lit portrait of an everyday user, casually dressed, representing a verified community member on the platform. The background is slightly blurred but suggests a modern home interior. Warm, earthy color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzvnpwAArUbHzRdvFuUKhwTLztvPDY4jIYtGIJaIAFfxBADNduJvdHDYrrph1uUcV6iykyApIHcvfyT3b_VLAYAXhZVSzhmzN3qvb1rw33vKoxsHxvK3amwcbc2179NfLxHqWRNBXG14OX0EWvflsCxwjxrV2r5U4wOjmUz8udewollRCgAfP7_wZ4Xs4igsgnYkpbTG96yRSiGLHYbRLhrS6fAKUOhH4gII-Y_UI-aODZVLGSlWvA_g">
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-unit-xl pb-unit-xl flex flex-col gap-unit-xl">
+<!-- Hero & Search Section -->
+<section class="flex flex-col gap-unit-lg">
+<div class="max-w-2xl">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-unit-sm">What service do you need?</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Find trusted, verified professionals in your community.</p>
+</div>
+<div class="relative max-w-2xl w-full">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="block w-full pl-12 pr-4 py-4 bg-surface-container-lowest border border-outline-variant rounded-full text-on-surface font-body-lg text-body-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-[0_4px_12px_rgba(115,51,12,0.05)] placeholder:text-outline" placeholder="Search for plumbing, cleaning, driving..." type="text">
+<button class="absolute inset-y-1 right-1 bg-primary text-on-primary px-6 rounded-full font-label-lg text-label-lg hover:bg-secondary transition-colors active:scale-95 flex items-center justify-center">
+                    Search
+                </button>
+</div>
+</section>
+<!-- Categories Section -->
+<section class="flex flex-col gap-unit-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Categories</h3>
+<div class="flex overflow-x-auto no-scrollbar gap-unit-md pb-4 snap-x">
+<!-- Category Item -->
+<button class="snap-start shrink-0 w-24 h-24 flex flex-col items-center justify-center gap-2 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-sm hover:bg-surface-container-low transition-colors active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-primary-fixed/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">electric_bolt</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Electrical</span>
+</button>
+<button class="snap-start shrink-0 w-24 h-24 flex flex-col items-center justify-center gap-2 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-sm hover:bg-surface-container-low transition-colors active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed/20 flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">plumbing</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Plumbing</span>
+</button>
+<button class="snap-start shrink-0 w-24 h-24 flex flex-col items-center justify-center gap-2 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-sm hover:bg-surface-container-low transition-colors active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed/40 flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">carpenter</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Carpentry</span>
+</button>
+<button class="snap-start shrink-0 w-24 h-24 flex flex-col items-center justify-center gap-2 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-sm hover:bg-surface-container-low transition-colors active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-error-container/40 flex items-center justify-center text-on-error-container group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">format_paint</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Painting</span>
+</button>
+<button class="snap-start shrink-0 w-24 h-24 flex flex-col items-center justify-center gap-2 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-sm hover:bg-surface-container-low transition-colors active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-surface-tint/20 flex items-center justify-center text-surface-tint group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">cleaning_services</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface text-center leading-tight">Helpers</span>
+</button>
+
+
+
+</div>
+</section>
+<!-- Nearby Verified Workers Section -->
+<section class="flex flex-col gap-unit-md">
+<div class="flex justify-between items-end mb-2">
+<h3 class="font-headline-md text-headline-md text-on-surface">Nearby Verified Workers</h3>
+<button class="text-primary font-label-lg text-label-lg hover:text-secondary transition-colors flex items-center gap-1">
+                    View all <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<!-- Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Worker Card 1 (Top Match) -->
+<div class="relative bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-unit-md flex flex-col gap-unit-md hover:shadow-md transition-shadow">
+<!-- Top Match Badge -->
+<div class="absolute -top-3 left-4 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-md text-label-md flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[16px] icon-filled text-secondary">stars</span>
+                        Top Match for you
+                    </div>
+<div class="flex gap-4 mt-2">
+<div class="relative shrink-0">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-lowest shadow-sm" data-alt="A warm, professional headshot of a female Indian domestic helper in her 30s. She is smiling gently, wearing neat, practical clothing. The background is a brightly lit, clean indoor space. The lighting emphasizes trust and reliability, using a grounded, earthy color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqX_UQ8jTfoOiqvzd19oIRGHV-yVednmyY6iG4nqx55e77L3CkiZGZJgOqHN7656zJm9QN1sSQE2uVARgzcrrC9qwR0GG9Gi8JyJgHako3pDlbMOZ_MO6hy9qiJhXD8skNFtnTUBZi8W9yjT_MsWCV3uCcuE3xJSerqRU0ABmQJfWfdi2LP97cj28mjz5wQZpsjS-NFJ8aX85VqUR8FKPa6Rn6h-jBhiicvoC_CHW4ipYLf5lAhDQCSg">
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-6 h-6 flex items-center justify-center border-2 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[12px] icon-filled">verified</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-grow">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Lakshmi Devi</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+                                Domestic Helper &amp; Cleaning
+                            </p>
+</div>
+<div class="flex flex-col items-end justify-start">
+<div class="flex items-center gap-1 text-secondary-container font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[18px] icon-filled text-secondary-container">star</span>
+                                4.9
+                            </div>
+<span class="font-label-md text-label-md text-outline">(120+ jobs)</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">work</span> 5 Yrs Exp
+                        </span>
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> 1.2 km away
+                        </span>
+<span class="bg-primary-fixed/30 text-on-primary-fixed px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Available Today
+                        </span>
+</div>
+<button class="w-full mt-auto bg-primary text-on-primary py-3 rounded-lg font-label-lg text-label-lg hover:bg-secondary transition-colors active:scale-[0.98]">
+                        Book Now
+                    </button>
+</div>
+<!-- Worker Card 2 -->
+<div class="relative bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-unit-md flex flex-col gap-unit-md hover:shadow-md transition-shadow">
+<div class="flex gap-4">
+<div class="relative shrink-0">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-lowest shadow-sm" data-alt="A confident, professional portrait of a male Indian electrician in his 40s. He is wearing a blue service uniform and holding a small tool. The background is slightly out of focus, showing a residential setting. Bright, natural lighting with warm undertones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAClkBPhMbnqYSRWOSFN2NOc_VEGKH2EBE5OxYSzztUMRby_8mqW11lK7rNpGQBtBGqRprR_zbPys0SuXFVTSkNqhumPiJOaCoKNVF2-T1XN1IFzeS4_2GWxlhe8WkmBiVZVjlapqdBuDjss-JuZGltpLPqxQ5Ue9zNRFnRbJF2_t_gbOtVVjxDoZuWNdUeOD-GYV2An1NDYYg5ae8rMnkjv1aRErqfFIRPBWhaljWbuGJNFvXxQ5QWNw">
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-6 h-6 flex items-center justify-center border-2 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[12px] icon-filled">verified</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-grow">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Rajesh Kumar</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+                                Expert Electrician
+                            </p>
+</div>
+<div class="flex flex-col items-end justify-start">
+<div class="flex items-center gap-1 text-secondary-container font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[18px] icon-filled text-secondary-container">star</span>
+                                4.8
+                            </div>
+<span class="font-label-md text-label-md text-outline">(85 jobs)</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">work</span> 8 Yrs Exp
+                        </span>
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> 2.5 km away
+                        </span>
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Available Tomorrow
+                        </span>
+</div>
+<button class="w-full mt-auto bg-surface text-primary border border-primary py-3 rounded-lg font-label-lg text-label-lg hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+                        Book Now
+                    </button>
+</div>
+<!-- Worker Card 3 -->
+<div class="relative bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-unit-md flex flex-col gap-unit-md hover:shadow-md transition-shadow">
+<div class="flex gap-4">
+<div class="relative shrink-0">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-surface-container-lowest shadow-sm" data-alt="A friendly, approachable portrait of a male Indian plumber in his late 20s. He is wearing a clean polo shirt. The lighting is soft and flattering, emphasizing a trustworthy and professional demeanor. The color palette incorporates earthy browns and soft creams." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBIGE9ZbBjb3d5-9voI5-oTM6XSrIWwjN4hJ3-UxEXXMv89kxTyzxbIC0iGTUllid-6_mBRYckNcU-dIRxaxE5KAbUg1lMrkAFdpp1ux_8CiFoyJObEk6bZIPJTiEZJiLXreYdSb8bXOP8tuJsCbNANorfSeqoEsqrS7AHPudOZWU8_LV-Tm210hValALbkl7MZlj-GRyVwVPDBBmFRWXElRWxu0eUww1AmY9FXQrtjiSp2j5X4Oms8A">
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-6 h-6 flex items-center justify-center border-2 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[12px] icon-filled">verified</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-grow">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Amit Singh</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+                                Plumbing Specialist
+                            </p>
+</div>
+<div class="flex flex-col items-end justify-start">
+<div class="flex items-center gap-1 text-secondary-container font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[18px] icon-filled text-secondary-container">star</span>
+                                4.7
+                            </div>
+<span class="font-label-md text-label-md text-outline">(40+ jobs)</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">work</span> 3 Yrs Exp
+                        </span>
+<span class="bg-surface-container text-on-surface-variant px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> 3.1 km away
+                        </span>
+<span class="bg-primary-fixed/30 text-on-primary-fixed px-2 py-1 rounded-md font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Available Today
+                        </span>
+</div>
+<button class="w-full mt-auto bg-surface text-primary border border-primary py-3 rounded-lg font-label-lg text-label-lg hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+                        Book Now
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container-lowest dark:bg-inverse-surface shadow-[0_-4px_12px_rgba(115,51,12,0.08)] fixed bottom-0 w-full z-50 rounded-t-xl left-0 flex justify-around items-center pt-unit-sm pb-safe px-unit-md min-h-[72px]">
+<!-- Active Tab: Home -->
+<a class="flex flex-col items-center justify-center bg-primary-fixed dark:bg-primary-container text-on-primary-fixed dark:text-on-primary-container rounded-full px-4 py-1 active:scale-90 duration-150 transition-all" href="#">
+<span class="material-symbols-outlined icon-filled">home</span>
+<span class="font-label-md text-label-md mt-1">Home</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1 hover:text-primary dark:hover:text-primary-fixed-dim transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="font-label-md text-label-md mt-1">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1 hover:text-primary dark:hover:text-primary-fixed-dim transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="font-label-md text-label-md mt-1">Safety</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-4 py-1 hover:text-primary dark:hover:text-primary-fixed-dim transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md mt-1">Profile</span>
+</a>
+</nav>
+
+
+</body></html>

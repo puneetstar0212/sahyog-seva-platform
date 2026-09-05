@@ -1,0 +1,8 @@
+flask
+flask-cors
+sqlalchemy
+geoalchemy2
+psycopg2-binary
+razorpay
+groq
+python-dotenv

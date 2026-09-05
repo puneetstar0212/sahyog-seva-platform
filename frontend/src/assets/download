@@ -1,0 +1,311 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Worker Registration - Step 3</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&amp;family=Work+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed-dim": "#ffb68a",
+                      "outline-variant": "#dac2b7",
+                      "secondary": "#994700",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed": "#e8e2d7",
+                      "on-surface-variant": "#54433b",
+                      "on-surface": "#1e1b18",
+                      "surface-tint": "#924b23",
+                      "on-secondary-fixed-variant": "#743500",
+                      "outline": "#87736a",
+                      "tertiary": "#312f28",
+                      "on-secondary": "#ffffff",
+                      "surface-container-high": "#efe6e2",
+                      "tertiary-container": "#48453d",
+                      "background": "#fff8f5",
+                      "surface": "#fff8f5",
+                      "on-tertiary-fixed-variant": "#49473f",
+                      "on-background": "#1e1b18",
+                      "on-error": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "surface-bright": "#fff8f5",
+                      "on-tertiary-fixed": "#1d1c15",
+                      "surface-container": "#f5ece7",
+                      "surface-container-low": "#fbf2ed",
+                      "on-secondary-container": "#692f00",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed-dim": "#cbc6bc",
+                      "primary": "#541f00",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#ff8e3f",
+                      "on-primary": "#ffffff",
+                      "surface-dim": "#e1d8d4",
+                      "surface-container-highest": "#e9e1dc",
+                      "inverse-surface": "#34302c",
+                      "primary-fixed-dim": "#ffb692",
+                      "primary-fixed": "#ffdbcb",
+                      "primary-container": "#73330c",
+                      "inverse-primary": "#ffb692",
+                      "inverse-on-surface": "#f8efea",
+                      "secondary-fixed": "#ffdbc8",
+                      "surface-variant": "#e9e1dc",
+                      "on-secondary-fixed": "#321300",
+                      "on-primary-fixed": "#341100",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#b7b3a9",
+                      "on-primary-fixed-variant": "#74340d",
+                      "on-primary-container": "#f89d6e"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit-xl": "48px",
+                      "margin-desktop": "64px",
+                      "unit-xs": "4px",
+                      "unit-lg": "24px",
+                      "margin-mobile": "20px",
+                      "container-max": "1280px",
+                      "unit-sm": "8px",
+                      "gutter": "24px",
+                      "unit-md": "16px"
+              },
+              "fontFamily": {
+                      "label-lg": ["Work Sans"],
+                      "headline-xl": ["Manrope"],
+                      "headline-md": ["Manrope"],
+                      "body-sm": ["Work Sans"],
+                      "body-lg": ["Work Sans"],
+                      "body-md": ["Work Sans"],
+                      "headline-lg": ["Manrope"],
+                      "label-md": ["Work Sans"],
+                      "headline-sm": ["Manrope"],
+                      "headline-lg-mobile": ["Manrope"]
+              },
+              "fontSize": {
+                      "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.surface'); color: theme('colors.on-surface'); font-family: theme('fontFamily.body-md'); }
+        .input-field {
+            @apply w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-fixed-dim transition-all;
+        }
+        .section-card {
+            @apply bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_12px_rgba(115,51,12,0.03)] border border-surface-variant mb-unit-lg;
+        }
+        .form-label {
+            @apply block text-on-surface-variant font-label-md text-label-md mb-2;
+        }
+    </style>
+</head>
+<body class="bg-surface min-h-screen pb-32 pt-20">
+<!-- TopAppBar from JSON -->
+<header class="bg-surface dark:bg-surface-dim shadow-sm fixed top-0 w-full z-50">
+<div class="flex items-center px-margin-mobile h-16 w-full max-w-container-max mx-auto">
+<button aria-label="Go back" class="text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-95 transition-transform mr-4">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center gap-2 flex-1">
+<span class="material-symbols-outlined text-primary text-3xl" data-weight="fill" style="font-variation-settings: &quot;FILL&quot; 1;">spa</span>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">Sahyog Seva</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">सेवा भी, सहयोग से विकास भी।</p>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-unit-lg">
+<!-- Progress Indicator -->
+<div class="mb-unit-xl">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-lg text-label-lg text-primary">Step 3 of 5</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Profile &amp; Verification</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-primary h-2 rounded-full" style="width: 42%"></div>
+</div>
+</div>
+<!-- Section A: Personal Identity -->
+<section class="section-card">
+<h2 class="font-headline-md text-headline-md text-primary-container mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">badge</span>
+                Personal Identity
+            </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-unit-md mb-6">
+<div class="md:col-span-2">
+<label class="form-label">Full Name</label>
+<input class="input-field" placeholder="As per official document" type="text">
+</div>
+<div>
+<label class="form-label">Date of Birth</label>
+<input class="input-field" type="date">
+</div>
+<div>
+<label class="form-label">Gender</label>
+<select class="input-field">
+<option>Select</option>
+<option>Male</option>
+<option>Female</option>
+<option>Other</option>
+</select>
+</div><div class="md:col-span-2">
+<label class="form-label">Preferred Language</label>
+<div class="flex gap-unit-md">
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="w-4 h-4 text-primary border-outline-variant focus:ring-primary" name="language" type="radio" value="english">
+<span class="font-body-md text-on-surface">English</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="w-4 h-4 text-primary border-outline-variant focus:ring-primary" name="language" type="radio" value="hindi">
+<span class="font-body-md text-on-surface">Hindi</span>
+</label>
+</div>
+</div>
+<div class="md:col-span-2 mt-4 p-4 border border-dashed border-outline rounded-lg bg-surface flex flex-col items-center justify-center gap-2">
+<span class="material-symbols-outlined text-secondary text-3xl" data-icon="add_a_photo">add_a_photo</span>
+<span class="font-label-lg text-label-lg text-primary">Upload Profile Photo</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">JPG, PNG up to 5MB</span>
+</div>
+<div class="md:col-span-2 mt-4">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-4">Address Details</h3>
+</div>
+<div class="md:col-span-2">
+<label class="form-label">Street Address</label>
+<input class="input-field" placeholder="House/Flat No., Street, Area" type="text">
+</div>
+<div>
+<label class="form-label">State</label>
+<select class="input-field">
+<option>Select State</option>
+</select>
+</div>
+<div>
+<label class="form-label">District</label>
+<select class="input-field">
+<option>Select District</option>
+</select>
+</div>
+<div>
+<label class="form-label">City/Town</label>
+<input class="input-field" type="text">
+</div>
+<div>
+<label class="form-label">PIN Code</label>
+<input class="input-field" placeholder="6 digits" type="text">
+</div>
+</div>
+<div class="mt-6 border-t border-surface-variant pt-6">
+<label class="form-label">Aadhaar ID&nbsp;</label>
+<input class="input-field mb-4" placeholder="Enter 12-digit Aadhaar Number" type="text">
+<button class="flex items-center justify-center gap-2 w-full md:w-auto bg-surface-container-high text-on-surface font-label-lg text-label-lg py-3 px-6 rounded-full hover:bg-surface-dim transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="upload_file">upload_file</span>
+                    Upload ID Document
+                </button>
+</div>
+</section><section class="section-card">
+<h2 class="font-headline-md text-headline-md text-primary-container mb-4 flex items-center gap-2 font-bold">
+<span class="material-symbols-outlined text-secondary">card_membership</span>
+                Certifications
+            </h2>
+<p class="font-body-md text-on-surface-variant mb-6">Upload certifications or licenses for your skills to build trust with customers.</p>
+<div class="flex flex-col items-center justify-center gap-2 border border-dashed border-outline rounded-lg bg-surface py-unit-sm">
+<span class="material-symbols-outlined text-secondary">upload_file</span>
+<button class="font-label-lg text-label-lg text-primary hover:opacity-80 transition-opacity" type="button">Upload Certificate</button>
+<span class="font-body-sm text-body-sm text-on-surface-variant">PDF, JPG, PNG up to 10MB</span>
+</div>
+</section>
+<!-- Section B: Cooperative Membership -->
+<section class="section-card">
+<h2 class="font-headline-md text-headline-md text-primary-container mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">diversity_3</span>
+                Cooperative Membership (OPTIONAL)</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-unit-md">
+<div class="md:col-span-2">
+
+
+</div>
+<div class="md:col-span-2">
+<label class="form-label">Cooperative Name</label>
+<input class="input-field" placeholder="Name of your local cooperative" type="text">
+</div>
+<div>
+<label class="form-label">Membership Type</label>
+<select class="input-field">
+<option>Select Type</option>
+<option>Full Member</option>
+<option>Associate</option>
+</select>
+</div>
+<div>
+<label class="form-label">Date of Joining</label>
+<input class="input-field" type="date">
+</div>
+<div class="flex items-end">
+<button class="flex items-center justify-center gap-2 w-full bg-surface-container-high text-on-surface font-label-lg text-label-lg py-3 px-6 rounded-full hover:bg-surface-dim transition-colors h-[48px]" type="button">
+<span class="material-symbols-outlined" data-icon="upload_file">upload_file</span>
+                        Upload Proof
+                    </button>
+</div>
+</div>
+</section>
+<!-- Verification Status Widgets -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-unit-md mb-unit-lg">
+
+
+</div>
+</main>
+<!-- BottomNavBar from JSON -->
+<nav class="bg-surface-container dark:bg-surface-container-high shadow-[0_-4px_12px_rgba(115,51,12,0.08)] fixed bottom-0 w-full z-50 rounded-t-xl hidden md:hidden block">
+<div class="fixed bottom-0 left-0 w-full flex justify-between items-center px-margin-mobile py-unit-md gap-gutter">
+<button class="flex flex-row items-center justify-center gap-unit-sm text-secondary dark:text-secondary-fixed-dim border border-secondary dark:border-secondary-fixed-dim rounded-full px-unit-lg py-unit-sm hover:brightness-110 transition-all active:scale-98 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+<span class="font-label-lg text-label-lg">Previous</span>
+</button>
+<button class="flex flex-row items-center justify-center gap-unit-sm bg-primary dark:bg-primary-container text-on-primary dark:text-on-primary-container rounded-full px-unit-lg py-unit-sm hover:brightness-110 transition-all active:scale-98 transition-transform duration-200">
+<span class="font-label-lg text-label-lg">Next</span>
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</nav>
+<!-- Desktop bottom nav equivalent (since bottom nav is hidden on md+ per rules, though rule says md:hidden. We add a generic footer area for desktop actions) -->
+<div class="hidden md:flex fixed bottom-0 w-full bg-surface-container-lowest border-t border-surface-variant p-4 justify-between items-center max-w-3xl mx-auto left-1/2 -translate-x-1/2 z-40 rounded-t-xl shadow-lg">
+<button class="flex items-center gap-2 text-secondary border border-secondary rounded-full px-6 py-2 hover:bg-surface-container transition-colors font-label-lg text-label-lg">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span> Previous
+        </button>
+<button class="flex items-center gap-2 bg-primary text-on-primary rounded-full px-6 py-2 hover:opacity-90 transition-opacity font-label-lg text-label-lg">
+            Next <span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+
+
+
+
+
+
+
+
+
+
+</body></html>
