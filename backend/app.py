@@ -821,6 +821,7 @@ def get_cooperative_stats():
     finally:
         session.close()
 
+
 @app.route('/api/admin/cooperative-transactions', methods=['GET'])
 def list_cooperative_transactions():
     session = Session()
@@ -833,6 +834,254 @@ def list_cooperative_transactions():
         return jsonify({"error": "An internal error occurred."}), 500
     finally:
         session.close()
+
+
+# Known area keywords to extract from free-text addresses.
+# Order matters: more-specific strings should come first.
+_KNOWN_AREAS = [
+    'Bandra West', 'Bandra East', 'Andheri West', 'Andheri East',
+    'Dadar', 'Juhu', 'Goregaon', 'Malad', 'Borivali', 'Kandivali',
+    'Thane', 'Navi Mumbai', 'Powai', 'Chembur', 'Kurla',
+    'Worli', 'Lower Parel', 'Parel', 'Matunga', 'Sion',
+]
+
+# Hard-coded short service IDs (s1-s9) → display category.
+_SERVICE_ID_MAP = {
+    's1': 'Electrical',
+    's2': 'Plumbing',
+    's3': 'Carpentry',
+    's4': 'Painting',
+    's5': 'Cleaning',
+    's6': 'Driving',
+    's7': 'Outdoor',
+    's8': 'Caregiving',
+    's9': 'Domestic',
+}
+
+# Map skill/service_id keywords → display category.
+# Individual skill keywords (from worker_profiles.skills array) included.
+_SERVICE_CATEGORY_MAP = {
+    # Electrical
+    'electrical': 'Electrical',
+    'electric':   'Electrical',
+    'wiring':     'Electrical',
+    'repair':     'Electrical',
+    'installation': 'Electrical',
+    # Plumbing
+    'plumbing':   'Plumbing',
+    'plumber':    'Plumbing',
+    'pipes':      'Plumbing',
+    'pipe':       'Plumbing',
+    'fittings':   'Plumbing',
+    'leaks':      'Plumbing',
+    # Carpentry
+    'carpentry':  'Carpentry',
+    'carpenter':  'Carpentry',
+    'furniture':  'Carpentry',
+    'doors':      'Carpentry',
+    # Painting
+    'painting':   'Painting',
+    'painter':    'Painting',
+    'decorative': 'Painting',
+    'interior':   'Painting',
+    'exterior':   'Painting',
+    # Cleaning
+    'cleaning':   'Cleaning',
+    'cleaner':    'Cleaning',
+    'deep clean': 'Cleaning',
+    'kitchen':    'Cleaning',
+    'bathroom':   'Cleaning',
+    # Driving
+    'driving':    'Driving',
+    'driver':     'Driving',
+    'local':      'Driving',
+    'delivery':   'Driving',
+    'personal':   'Driving',
+    # Outdoor / Gardening
+    'garden':     'Outdoor',
+    'outdoor':    'Outdoor',
+    'lawn':       'Outdoor',
+    'pruning':    'Outdoor',
+    'landscaping': 'Outdoor',
+    # Caregiving
+    'caregiving': 'Caregiving',
+    'caregiv':    'Caregiving',
+    'elderly':    'Caregiving',
+    'nursing':    'Caregiving',
+    'companion':  'Caregiving',
+    # Domestic
+    'domestic':   'Domestic',
+    'cooking':    'Domestic',
+    'laundry':    'Domestic',
+    'test':       'Other',
+}
+
+def _extract_area(address: str) -> str:
+    """Return the first known area found in the address string, else 'Other'."""
+    if not address:
+        return 'Other'
+    addr_lower = address.lower()
+    for area in _KNOWN_AREAS:
+        if area.lower() in addr_lower:
+            return area
+    return 'Other'
+
+def _normalise_category(raw: str) -> str:
+    """Map a raw service_id or skill string to a display category.
+
+    Resolution order:
+    1. Exact match in _SERVICE_ID_MAP  (handles 's1', 's2' … 's9', 'gig')
+    2. Keyword substring in _SERVICE_CATEGORY_MAP  (handles skill tags)
+    3. Capitalise first word as a fallback
+    """
+    if not raw or not raw.strip():
+        return 'Other'
+    raw_stripped = raw.strip()
+    # 1. Exact service-ID lookup (case-insensitive)
+    mapped = _SERVICE_ID_MAP.get(raw_stripped.lower())
+    if mapped:
+        return mapped
+    # 2. Keyword match on the full string
+    raw_lower = raw_stripped.lower()
+    for keyword, category in _SERVICE_CATEGORY_MAP.items():
+        if keyword in raw_lower:
+            return category
+    # 3. Fallback: capitalise first word
+    return raw_stripped.split()[0].capitalize()
+
+def _scale_to_100(value: int, max_val: int) -> int:
+    """Scale value proportionally so the largest bucket = 100."""
+    if max_val == 0:
+        return 0
+    return min(100, round(value * 100 / max_val))
+
+def _gap_status(gap: int) -> str:
+    if gap >= 30:
+        return 'Critical'
+    if gap >= 20:
+        return 'High'
+    if gap >= 10:
+        return 'Moderate'
+    return 'Balanced'
+
+
+@app.route('/api/admin/demand-heatmap', methods=['GET'])
+def get_demand_heatmap():
+    """
+    Aggregate real booking demand and approved worker supply by category × area.
+    Returns JSON array of DemandCell objects matching the frontend type:
+      { area, category, demand, supply, gap, status, booking_count, worker_count }
+
+    Query params:
+      from_date  – ISO date string (YYYY-MM-DD), default = 90 days ago
+      to_date    – ISO date string (YYYY-MM-DD), default = today
+    """
+    from datetime import date, timedelta
+    from collections import defaultdict
+
+    # ── Date range ──────────────────────────────────────────────────────────
+    raw_from = request.args.get('from_date')
+    raw_to   = request.args.get('to_date')
+    try:
+        from_date = date.fromisoformat(raw_from) if raw_from else date.today() - timedelta(days=90)
+        to_date   = date.fromisoformat(raw_to)   if raw_to   else date.today()
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+
+    try:
+        with engine.connect() as conn:
+            # ── 1. Demand: count bookings by (service_id, address) ──────────
+            demand_rows = conn.execute(text("""
+                SELECT
+                    service_id,
+                    address,
+                    COUNT(*) AS booking_count
+                FROM bookings
+                WHERE created_at::date BETWEEN :from_date AND :to_date
+                  AND status NOT IN ('cancelled')
+                GROUP BY service_id, address
+            """), {'from_date': from_date, 'to_date': to_date}).mappings().all()
+
+            # ── 2. Supply: approved workers by skill ─────────────────────────
+            supply_rows = conn.execute(text("""
+                SELECT
+                    unnest(skills) AS skill,
+                    COUNT(*) AS worker_count
+                FROM worker_profiles
+                WHERE approval_status = 'approved'
+                GROUP BY skill
+            """)).mappings().all()
+
+        # ── Aggregate demand into (area, category) buckets ──────────────────
+        demand_buckets = defaultdict(int)   # (area, category) -> count
+        for row in demand_rows:
+            area     = _extract_area(row['address'])
+            category = _normalise_category(row['service_id'] or '')
+            demand_buckets[(area, category)] += int(row['booking_count'])
+
+        # ── Aggregate supply into category buckets ───────────────────────────
+        supply_by_category = defaultdict(int)  # category -> worker_count
+        for row in supply_rows:
+            category = _normalise_category(row['skill'] or '')
+            supply_by_category[category] += int(row['worker_count'])
+
+        # ── Build all (area, category) pairs present in either source ────────
+        all_pairs = set(demand_buckets.keys())
+        # Also add area × category pairs for all areas that have any demand
+        areas_with_demand = {k[0] for k in demand_buckets}
+        for area in areas_with_demand:
+            for category in supply_by_category:
+                all_pairs.add((area, category))
+
+        if not all_pairs:
+            return jsonify([]), 200
+
+        # ── Scaling: find max demand and max worker count for normalisation ──
+        max_demand = max((demand_buckets[p] for p in all_pairs), default=1) or 1
+        max_supply = max(supply_by_category.values(), default=1) or 1
+
+        # ── Build result cells ───────────────────────────────────────────────
+        cells = []
+        for (area, category) in sorted(all_pairs):
+            raw_demand = demand_buckets.get((area, category), 0)
+            raw_supply = supply_by_category.get(category, 0)
+
+            # Skip empty rows (no demand AND no supply in this cell)
+            if raw_demand == 0 and raw_supply == 0:
+                continue
+
+            demand_pct = _scale_to_100(raw_demand, max_demand)
+            supply_pct = _scale_to_100(raw_supply, max_supply)
+            gap        = max(0, demand_pct - supply_pct)
+            status     = _gap_status(gap)
+
+            cells.append({
+                'area':          area,
+                'category':      category,
+                'demand':        demand_pct,
+                'supply':        supply_pct,
+                'gap':           gap,
+                'status':        status,
+                'booking_count': raw_demand,
+                'worker_count':  raw_supply,
+            })
+
+        # Sort: Critical first, then High, then by gap descending
+        status_order = {'Critical': 0, 'High': 1, 'Moderate': 2, 'Balanced': 3}
+        cells.sort(key=lambda c: (status_order.get(c['status'], 9), -c['gap']))
+
+        return jsonify({
+            'cells':       cells,
+            'from_date':   from_date.isoformat(),
+            'to_date':     to_date.isoformat(),
+            'data_source': 'Actual bookings and approved worker profiles',
+            'total_cells': len(cells),
+        }), 200
+
+    except Exception:
+        app.logger.error("Error in demand-heatmap: %s", tb.format_exc())
+        return jsonify({'error': 'An internal error occurred.'}), 500
+
 
 @app.route('/api/workers/<worker_id>/earnings', methods=['GET'])
 def get_worker_earnings(worker_id):

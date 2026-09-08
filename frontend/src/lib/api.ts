@@ -172,6 +172,30 @@ export const api = {
 
     listCooperativeTransactions: (): Promise<any[]> =>
       fetchWithHandler(`${API_BASE_URL}/api/admin/cooperative-transactions`),
+
+    getDemandHeatmap: (params?: { from_date?: string; to_date?: string }): Promise<{
+      cells: Array<{
+        area: string;
+        category: string;
+        demand: number;
+        supply: number;
+        gap: number;
+        status: string;
+        booking_count: number;
+        worker_count: number;
+      }>;
+      from_date: string;
+      to_date: string;
+      data_source: string;
+      total_cells: number;
+    }> => {
+      const qs = params
+        ? new URLSearchParams(
+            Object.fromEntries(Object.entries(params).filter(([, v]) => v != null)) as Record<string, string>
+          ).toString()
+        : '';
+      return fetchWithHandler(`${API_BASE_URL}/api/admin/demand-heatmap${qs ? `?${qs}` : ''}`);
+    },
   },
 };
 
