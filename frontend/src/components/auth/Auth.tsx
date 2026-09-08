@@ -16,6 +16,8 @@ export function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+  // Distinguish between immediate session and email-confirmation-required flows
+  const [awaitingEmailConfirm, setAwaitingEmailConfirm] = useState(false);
 
   const update = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -44,13 +46,56 @@ export function Auth() {
     if (!validate()) return;
     setAuthLoading(true);
     setAuthError(null);
+    setAwaitingEmailConfirm(false);
+
     try {
+      // ── Step 1: Sign up with Supabase Auth ────────────────────────────────
+      // Pass metadata so handle_new_user() trigger sets the correct role and name.
+      // NOTE: The trigger enforces that 'admin' cannot be set via this path.
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        options: {
+          data: {
+            full_name: form.fullName,
+            // Only 'customer' or 'worker' — trigger blocks 'admin'
+            role: role as 'customer' | 'worker',
+          },
+        },
       });
-      if (error) throw error;
-      if (!data.user) throw new Error('Registration failed');
+
+      if (error) {
+        // Provide a clear error for duplicate email vs other failures
+        if (error.message?.toLowerCase().includes('already registered') ||
+            error.message?.toLowerCase().includes('already exists') ||
+            error.status === 422) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error('Registration failed: no user was created. Please try again.');
+      }
+
+      // ── Step 2: Handle email confirmation case ────────────────────────────
+      // If Supabase requires email confirmation, data.session will be null.
+      // In this case we cannot write to the database (RLS requires an authenticated session).
+      // The handle_new_user trigger has already created a profile row via SECURITY DEFINER.
+      if (!data.session) {
+        // Email confirmation is required — the trigger already set the role.
+        // Worker profile will need to be created after email confirmation + login.
+        // We inform the user and exit cleanly.
+        setAwaitingEmailConfirm(true);
+        setAuthLoading(false);
+        return;
+      }
+
+      // ── Step 3: Upsert the full profile with all registration fields ──────
+      // The trigger may have already created a minimal profile row.
+      // We upsert to ensure phone, address, and the correct role are saved.
+      // SECURITY: We never write role='admin' here.
+      const safeRole: 'customer' | 'worker' = role === 'worker' ? 'worker' : 'customer';
 
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
@@ -58,32 +103,62 @@ export function Auth() {
         full_name: form.fullName,
         phone: form.phone,
         address: form.address,
-        role,
-      });
-      if (profileError) throw profileError;
+        role: safeRole,
+      }, { onConflict: 'id' });
 
+      if (profileError) {
+        console.error('Profile upsert error:', profileError);
+        throw new Error(`Profile setup failed: ${profileError.message}. Code: ${profileError.code}`);
+      }
+
+      // ── Step 4: Create worker profile (workers only) ──────────────────────
       if (role === 'worker') {
         const skillsArray = form.skills.split(',').map((s) => s.trim()).filter(Boolean);
-        const { error: workerError } = await supabase.from('worker_profiles').insert({
+
+        // Use UPSERT (onConflict: user_id) to safely handle:
+        // - Fresh registrations (INSERT)
+        // - Retry attempts where profile was created but worker_profile failed (UPDATE)
+        // This prevents unique constraint errors on re-registration.
+        const { error: workerError } = await supabase.from('worker_profiles').upsert({
           user_id: data.user.id,
           skills: skillsArray,
           experience_years: Number(form.experienceYears) || 0,
           hourly_rate: Number(form.hourlyRate) || 0,
           working_hours: form.workingHours,
-        });
-        if (workerError) throw workerError;
+          // Explicitly set pending — never trust client to set approved
+          approval_status: 'pending',
+        }, { onConflict: 'user_id' });
 
-      }
+        if (workerError) {
+          console.error('Worker profile upsert error:', workerError);
+          // Provide the real error so it can be debugged — registration is NOT complete
+          throw new Error(
+            `Worker profile setup failed: ${workerError.message}` +
+            (workerError.hint ? ` Hint: ${workerError.hint}` : '') +
+            (workerError.code ? ` (Code: ${workerError.code})` : '')
+          );
+        }
 
-      if (role === 'worker') {
+        // Success for worker — show pending approval message
         setSuccess(true);
       } else {
+        // Customer registration complete — go to client portal
+        useAppStore.getState().setProfile({
+          id: data.user.id,
+          email: form.email,
+          full_name: form.fullName,
+          phone: form.phone,
+          address: form.address,
+          role: 'customer',
+        });
+        useAppStore.getState().setSession({ user: { id: data.user.id, email: form.email } });
         setPortal('client');
         navigate('home');
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Registration failed';
-      setAuthError(msg.includes('already') ? 'An account with this email already exists' : 'Could not create your account. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setAuthError(msg);
+      console.error('Registration error:', err);
     } finally {
       setAuthLoading(false);
     }
@@ -105,43 +180,90 @@ export function Auth() {
       });
       if (error) throw error;
       if (data.user) {
-        let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
+        const { data: profile, error: profileFetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (profileFetchError) {
+          console.error('Profile fetch error:', profileFetchError);
+          throw new Error(`Could not load your account profile: ${profileFetchError.message}`);
+        }
+
+        // SECURITY: Do NOT silently create a customer profile if one is missing.
+        // A missing profile indicates an incomplete registration or a data issue.
+        // Creating one here could silently downgrade an intended worker/admin.
         if (!profile) {
-          const { data: newProfile } = await supabase.from('profiles').insert({
-            id: data.user.id,
-            email: data.user.email,
-            full_name: data.user.email?.split('@')[0] || 'User',
-            role: 'customer',
-          }).select().maybeSingle();
-          profile = newProfile;
+          await supabase.auth.signOut();
+          throw new Error(
+            'Your account profile is incomplete. This can happen if you did not confirm your email. ' +
+            'Please re-register or contact support.'
+          );
         }
-        if (profile) {
-          useAppStore.getState().setProfile(profile as never);
-          if ((profile as { role: string }).role === 'admin') setPortal('admin');
-          else if ((profile as { role: string }).role === 'worker') {
-            const { data: workerProfile } = await supabase.from('worker_profiles').select('*').eq('user_id', data.user.id).maybeSingle();
-            if (workerProfile) useAppStore.getState().setWorkerProfile(workerProfile as never);
-            setPortal('worker');
-          } else {
-            setPortal('client');
-          }
+
+        useAppStore.getState().setProfile(profile as never);
+        useAppStore.getState().setSession({ user: { id: data.user.id, email: data.user.email ?? '' } });
+
+        if ((profile as { role: string }).role === 'admin') {
+          setPortal('admin');
+          navigate('adminDashboard');
+        } else if ((profile as { role: string }).role === 'worker') {
+          const { data: workerProfile } = await supabase
+            .from('worker_profiles')
+            .select('*')
+            .eq('user_id', data.user.id)
+            .maybeSingle();
+          if (workerProfile) useAppStore.getState().setWorkerProfile(workerProfile as never);
+          setPortal('worker');
+          navigate('workerDashboard');
+        } else {
+          setPortal('client');
+          navigate('home');
         }
-        navigate('home');
       }
     } catch (err: unknown) {
-      setAuthError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Invalid email or password. Please try again.';
+      setAuthError(msg);
+      console.error('Login error:', err);
     } finally {
       setAuthLoading(false);
     }
   };
 
+  // ── Email confirmation pending state ──────────────────────────────────────
+  if (awaitingEmailConfirm) {
+    return (
+      <main className="container page-main">
+        <div className="success-panel" style={{ maxWidth: 520, margin: '0 auto' }}>
+          <span className="success-icon"><Mail size={28} /></span>
+          <h2>Check Your Email</h2>
+          <p>
+            We sent a confirmation link to <strong>{form.email}</strong>.
+            Please open that email and click the link to verify your account.
+            After confirming, come back and sign in.
+          </p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+            {role === 'worker'
+              ? 'Your worker profile will be set up when you sign in after confirming your email.'
+              : ''}
+          </p>
+          <button className="primary-button" onClick={() => { setAwaitingEmailConfirm(false); setAuthMode('login'); }}>
+            Go to Sign In <ArrowRight size={17} />
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Worker registration success (pending approval) ────────────────────────
   if (success) {
     return (
       <main className="container page-main">
         <div className="success-panel" style={{ maxWidth: 520, margin: '0 auto' }}>
           <span className="success-icon"><Check size={28} /></span>
           <h2>Registration Submitted!</h2>
-          <p>Your worker profile has been created and is now pending admin approval. You will be able to access the worker dashboard once an administrator reviews and approves your account.</p>
+          <p>Your worker profile has been created and is now <strong>pending admin approval</strong>. You will be able to access the worker dashboard once an administrator reviews and approves your account.</p>
           <button className="primary-button" onClick={() => { setPortal('worker'); navigate('workerDashboard'); }}>Go to Worker Dashboard <ArrowRight size={17} /></button>
         </div>
       </main>
