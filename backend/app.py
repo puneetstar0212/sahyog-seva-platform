@@ -9,6 +9,20 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import razorpay
 
+
+def _to_uuid_or_none(value):
+    """Return the value if it's a valid UUID string, else None.
+    Prevents PostgreSQL 'invalid input syntax for type uuid' errors when
+    frontend passes demo IDs like 'c1', 'w2', or 'demo-client-id'.
+    """
+    if not value:
+        return None
+    try:
+        uuid.UUID(str(value))
+        return str(value)
+    except (ValueError, AttributeError):
+        return None
+
 # CRITICAL: load_dotenv() MUST come before any os.getenv() calls
 load_dotenv()
 
@@ -490,16 +504,21 @@ def create_booking():
 
     session = Session()
     try:
-        gig_id = data.get('gig_id')
+        # Sanitize: if any ID is not a valid UUID, pass None to avoid DB type errors
+        customer_uuid = _to_uuid_or_none(data.get('customer_id'))
+        worker_uuid = _to_uuid_or_none(data.get('worker_id'))
+        service_uuid = _to_uuid_or_none(data.get('service_id'))
+
+        gig_id = _to_uuid_or_none(data.get('gig_id'))
         if not gig_id:
             gig = Gig(
-                consumer_id=data.get('customer_id'),
-                worker_id=data.get('worker_id'),
+                consumer_id=customer_uuid,
+                worker_id=worker_uuid,
                 title=data.get('service_name', 'Requested Service'),
                 budget=float(data['price']),
                 total_amount=float(data['price']),
-                status='ASSIGNED' if data.get('worker_id') else 'SEARCHING',
-                assigned_worker_id=data.get('worker_id')
+                status='ASSIGNED' if worker_uuid else 'SEARCHING',
+                assigned_worker_id=worker_uuid
             )
             session.add(gig)
             session.flush()
@@ -514,9 +533,9 @@ def create_booking():
                :date, :time, :address, :price, 'pending', :otp, NOW(), NOW())
         """), {
             'id': booking_id,
-            'customer_id': data.get('customer_id'),
-            'worker_id': data.get('worker_id'),
-            'service_id': data.get('service_id'),
+            'customer_id': customer_uuid,
+            'worker_id': worker_uuid,
+            'service_id': service_uuid,
             'gig_id': gig_id,
             'date': data['date'],
             'time': data['time'],
