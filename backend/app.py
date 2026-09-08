@@ -668,12 +668,19 @@ def verify_otp(booking_id):
     """
     Verify the OTP for a booking to mark it as completed.
     Limits failed attempts to 3.
+
+    DEV BYPASS (temporary): set DEV_OTP_BYPASS=true in backend/.env to accept
+    any numeric OTP so the full flow can be tested without the real OTP.
+    Remove before production.
     """
     data = request.get_json()
     if not data or not data.get('otp'):
         return jsonify({'error': 'OTP is required'}), 400
         
     submitted_otp = str(data['otp']).strip()
+
+    # DEV BYPASS: accepts any OTP when DEV_OTP_BYPASS=true in .env
+    dev_bypass = os.getenv('DEV_OTP_BYPASS', 'false').lower() == 'true'
 
     try:
         with engine.connect() as conn:
@@ -689,11 +696,14 @@ def verify_otp(booking_id):
                 return jsonify({'error': 'Booking is not in awaiting_otp status'}), 400
                 
             failed_attempts = row.get('failed_otp_attempts') or 0
-            
-            if failed_attempts >= 3:
+
+            if failed_attempts >= 3 and not dev_bypass:
                 return jsonify({'error': 'Too many failed OTP attempts. Please contact support.'}), 400
-                
-            if row['otp'] != submitted_otp:
+
+            # OTP check: real in production, bypassed in dev mode
+            otp_valid = dev_bypass or (row['otp'] == submitted_otp)
+
+            if not otp_valid:
                 # Increment failed attempts
                 conn.execute(
                     text('UPDATE bookings SET failed_otp_attempts = failed_otp_attempts + 1 WHERE id = :id'),
@@ -702,7 +712,7 @@ def verify_otp(booking_id):
                 conn.commit()
                 return jsonify({'error': 'Invalid OTP'}), 400
                 
-            # OTP matches
+            # OTP accepted (real match or dev bypass)
             conn.execute(
                 text("UPDATE bookings SET status = 'completed', failed_otp_attempts = 0, updated_at = NOW() WHERE id = :id"),
                 {'id': booking_id}
