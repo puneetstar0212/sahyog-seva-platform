@@ -218,7 +218,7 @@ export const useAppStore = create<AppState>()(
     set({ isBookingSubmitting: true, bookingError: null });
 
     const { session } = get();
-    const customerId = session?.user.id ?? bookingData.clientId ?? 'demo-client-id';
+    const customerId = session?.user.id ?? bookingData.clientId;
 
     // ── Optimistic local update ──────────────────────────────────────────────
     const tempId = 'pending-' + generateId();
@@ -350,7 +350,8 @@ export const useAppStore = create<AppState>()(
 
     try {
       const { session } = get();
-      const workerId = session?.user?.id || 'w2'; // fallback for demo
+      const workerId = session?.user?.id;
+      if (!workerId) throw new Error('You must be logged in as a worker to accept gigs');
       // Backend handles setting the assigned_worker_id and status=ASSIGNED
       const updatedGig = await api.gigs.accept(gigId, workerId);
       

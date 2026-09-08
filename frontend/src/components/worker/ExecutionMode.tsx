@@ -3,7 +3,7 @@ import { ArrowRight, CalendarDays, Check, ChevronLeft, Clock3, MapPin, Navigatio
 import { useAppStore } from '@/store/useAppStore';
 
 export function ExecutionMode() {
-  const { selectedBooking, navigate, updateBookingStatus } = useAppStore();
+  const { selectedBooking, navigate, updateBookingStatus, verifyOtp } = useAppStore();
   const [otpRevealed, setOtpRevealed] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -38,6 +38,20 @@ export function ExecutionMode() {
     } catch (err) {
       console.error("Failed to update status", err);
       setActionError(err instanceof Error ? err.message : 'Status update failed');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSimulateVerify = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    setActionError(null);
+    try {
+      await verifyOtp(selectedBooking.id, selectedBooking.otp);
+    } catch (err) {
+      console.error("Failed to verify OTP", err);
+      setActionError(err instanceof Error ? err.message : 'OTP Verification failed');
     } finally {
       setIsUpdating(false);
     }
@@ -131,7 +145,7 @@ export function ExecutionMode() {
                 </button>
               </div>
               <small>Waiting for client to verify...</small>
-              <button className="outline-button" onClick={() => advance('completed')} disabled={isUpdating}>
+              <button className="outline-button" onClick={() => handleSimulateVerify()} disabled={isUpdating}>
                 {isUpdating ? <Loader2 size={17} className="spin" /> : "Simulate Client Verification"} <ArrowRight size={17} />
               </button>
             </div>

@@ -10,7 +10,7 @@ export function Workers() {
     void fetchWorkers();
   }, [fetchWorkers]);
 
-  const filtered = useMemo(() => workers.filter((w) => `${w.name} ${w.role}`.toLowerCase().includes(query.toLowerCase())), [query, workers]);
+  const filtered = useMemo(() => workers.filter((w) => `${w.name} ${w.role} ${w.skills.join(' ')}`.toLowerCase().includes(query.toLowerCase())), [query, workers]);
 
   return (
     <main className="container page-main">

@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 export function WorkerDashboard() {
   const { navigate, workerOnline, setWorkerOnline, gigs, bookings, fetchGigs, profile, workerProfile, workerEarnings, fetchWorkerEarnings, isGigsLoading, gigsError } = useAppStore();
   const openGigs = gigs.filter((g) => g.status === 'open' || g.status === 'SEARCHING');
-  const workerId = useAppStore.getState().session?.user?.id || 'w2';
+  const workerId = useAppStore.getState().session?.user?.id;
 
   useEffect(() => {
     void fetchGigs();

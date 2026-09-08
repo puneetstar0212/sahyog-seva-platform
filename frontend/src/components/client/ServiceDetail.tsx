@@ -6,7 +6,17 @@ export function ServiceDetail() {
   const { selectedService, workers, selectWorker, navigate } = useAppStore();
   if (!selectedService) { navigate('services'); return null; }
 
-  const serviceWorkers = workers.filter((w) => w.skills.some((skill) => selectedService.tags.includes(skill) || selectedService.category.includes(skill)));
+  const serviceWorkers = workers.filter((w) => {
+    const searchTerms = [
+      selectedService.category.toLowerCase(),
+      selectedService.name.toLowerCase(),
+      ...selectedService.tags.map(t => t.toLowerCase())
+    ];
+    return w.skills.some((skill) => {
+      const s = skill.toLowerCase();
+      return searchTerms.some(term => term.includes(s) || s.includes(term));
+    });
+  });
 
   return (
     <main className="container page-main">

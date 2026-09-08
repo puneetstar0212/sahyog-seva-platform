@@ -18,7 +18,8 @@ export function GigDetail() {
       await acceptGig(selectedGig.id);
       
       const session = useAppStore.getState().session;
-      const workerId = session?.user?.id || 'w2';
+      const workerId = session?.user?.id;
+      if (!workerId) throw new Error("You must be logged in to accept a gig.");
       
       const bookingId = await createBooking({
         serviceId: selectedGig.serviceId || 'gig',

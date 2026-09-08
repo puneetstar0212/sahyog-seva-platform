@@ -48,6 +48,10 @@ rzp_client = None
 if razorpay_key_id and razorpay_key_secret:
     rzp_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
 
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({"message": "Sahyog Seva Backend API is running", "docs": "Use /api endpoints"}), 200
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "healthy"}), 200
@@ -55,15 +59,60 @@ def health_check():
 @app.route('/api/gigs', methods=['GET'])
 def get_gigs():
     """Return all open gigs from the database."""
-    session = Session()
     try:
-        gigs = session.query(Gig).all()
-        return jsonify([g.to_dict() for g in gigs]), 200
+        with engine.connect() as conn:
+            # Join gigs with bookings and profiles to get extra details expected by the frontend
+            query = text("""
+                SELECT g.*, 
+                       b.date, b.time, b.address, b.price as booking_price, 
+                       p.full_name as client_name
+                FROM gigs g
+                LEFT JOIN bookings b ON g.id = b.gig_id::uuid
+                LEFT JOIN profiles p ON g.consumer_id = p.id
+            """)
+            rows = conn.execute(query).mappings().all()
+            
+            result = []
+            for r in rows:
+                d = dict(r)
+                # Ensure UUIDs/DateTimes are strings
+                for k, v in d.items():
+                    if hasattr(v, 'hex'):
+                        d[k] = str(v)
+                    elif hasattr(v, 'isoformat'):
+                        d[k] = v.isoformat()
+                
+                # Map extra fields for frontend UI
+                gig_dict = {
+                    'id': d.get('id'),
+                    'consumer_id': d.get('consumer_id'),
+                    'clientId': d.get('consumer_id') or 'c1',
+                    'worker_id': d.get('worker_id'),
+                    'title': d.get('title'),
+                    'serviceName': d.get('title') or 'Requested Service',
+                    'description': d.get('description'),
+                    'budget': d.get('budget'),
+                    'status': d.get('status'),
+                    'total_amount': d.get('total_amount'),
+                    'payment_mode': d.get('payment_mode'),
+                    'assigned_worker_id': d.get('assigned_worker_id'),
+                    'accepted_at': d.get('accepted_at'),
+                    'created_at': d.get('created_at'),
+                    'date': d.get('date') or 'Flexible',
+                    'time': d.get('time') or 'Flexible',
+                    'address': d.get('address') or 'TBD',
+                    'price': float(d.get('booking_price') or d.get('total_amount') or d.get('budget') or 0),
+                    'clientName': d.get('client_name') or 'Customer',
+                    'clientImage': d.get('client_image') or f"https://ui-avatars.com/api/?name={d.get('client_name') or 'Customer'}",
+                    'distance': '2.5 km',
+                    'duration': '1-2 hrs',
+                }
+                result.append(gig_dict)
+                
+            return jsonify(result), 200
     except Exception as e:
         app.logger.error("Error: %s", str(e))
         return jsonify({"error": "An internal error occurred."}), 500
-    finally:
-        session.close()
 
 @app.route('/api/gigs', methods=['POST'])
 def create_gig():
