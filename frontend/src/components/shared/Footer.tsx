@@ -1,6 +1,5 @@
 import { Leaf } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import type { Portal } from '@/types';
 
 export function Footer() {
   const { navigate, setPortal } = useAppStore();

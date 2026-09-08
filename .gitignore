@@ -10,3 +10,16 @@ __pycache__/
 
 .DS_Store
 Thumbs.db
+# Temporary scripts
+backend/check_*.py
+backend/test_*.py
+backend/temp_*.py
+backend/inspect_*.py
+backend/benchmark_*.py
+backend/apply_fix.py
+backend/promote_admin.py
+backend/seed_workers.py
+frontend/test_query.js
+backend/scratch/
+supabase_bookings_migration.sql
+supabase_fix_registration.sql

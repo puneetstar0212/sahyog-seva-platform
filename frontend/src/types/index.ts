@@ -31,16 +31,20 @@ export type Screen =
   | 'manageWorkers'
   // Auth
   | 'login'
-  | 'register';
+  | 'register'
+  // Dev / Testing
+  | 'supabaseTest';
 
 export type BookingStatus =
   | 'pending'
   | 'accepted'
-  | 'in_progress'
-  | 'completed'
+  | 'travelling'
+  | 'arrived'
+  | 'working'
   | 'awaiting_otp'
-  | 'released'
-  | 'cancelled';
+  | 'completed'
+  | 'cancelled'
+  | 'released';
 
 export type WorkerStatus = 'online' | 'offline' | 'busy';
 
@@ -93,6 +97,7 @@ export interface Booking {
   status: BookingStatus;
   otp: string;
   createdAt: string;
+  gig_id?: string;        // optional link to a gig UUID
   rating?: number;
   reviewText?: string;
 }
@@ -108,16 +113,20 @@ export interface ChatMessage {
 export interface Gig {
   id: string;
   serviceId: string;
-  serviceName: string;
+  serviceName?: string;
+  title?: string;
   clientId: string;
+  consumer_id?: string;
   clientName: string;
   clientImage: string;
   address: string;
   date: string;
   time: string;
   price: number;
+  budget?: number;
+  total_amount?: number;
   duration: string;
-  status: 'open' | 'assigned' | 'completed';
+  status: 'open' | 'assigned' | 'completed' | 'SEARCHING' | 'ASSIGNED' | 'COMPLETED';
   description: string;
   distance: string;
 }

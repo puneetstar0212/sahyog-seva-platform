@@ -6,3 +6,4 @@ psycopg2-binary
 razorpay
 groq
 python-dotenv
+requests

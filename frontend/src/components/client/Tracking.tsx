@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { ArrowRight, CalendarDays, ChevronLeft, Clock3, MapPin, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChevronLeft, Clock3, Loader2, MapPin, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { BookingStatus } from '@/types';
 
+// Updated to use the new status set (removed in_progress, added working)
 const statusSteps: { key: BookingStatus; label: string }[] = [
   { key: 'pending', label: 'Pending' },
   { key: 'accepted', label: 'Accepted' },
-  { key: 'in_progress', label: 'In Progress' },
+  { key: 'working', label: 'In Progress' },
   { key: 'awaiting_otp', label: 'Awaiting OTP' },
   { key: 'released', label: 'Completed' },
 ];
 
 export function Tracking() {
-  const { selectedBooking, navigate, updateBookingStatus } = useAppStore();
+  const { selectedBooking, navigate, updateBookingStatus, isBookingLoading, bookingError } = useAppStore();
   if (!selectedBooking) { navigate('bookings'); return null; }
 
   const currentStepIndex = statusSteps.findIndex((s) => s.key === selectedBooking.status);
@@ -53,14 +54,28 @@ export function Tracking() {
             <div className="tracking-action-box">
               <h3>Worker is on the way</h3>
               <p>Your worker has accepted the booking and will arrive at the scheduled time. You can chat or call to coordinate.</p>
-              <button className="primary-button" onClick={() => { updateBookingStatus(selectedBooking.id, 'in_progress'); }}>Mark as Started <ArrowRight size={17} /></button>
+              {bookingError && <small className="error-text" style={{ color: 'red', display: 'block', marginBottom: '0.5rem' }}>{bookingError}</small>}
+              <button
+                className="primary-button"
+                onClick={() => updateBookingStatus(selectedBooking.id, 'working')}
+                disabled={isBookingLoading}
+              >
+                {isBookingLoading ? <Loader2 size={17} className="spin" /> : <>Mark as Started <ArrowRight size={17} /></>}
+              </button>
             </div>
           )}
-          {selectedBooking.status === 'in_progress' && (
+          {selectedBooking.status === 'working' && (
             <div className="tracking-action-box">
               <h3>Work in progress</h3>
               <p>The worker is currently performing the service. Once complete, you'll receive an OTP to release payment.</p>
-              <button className="primary-button" onClick={() => { updateBookingStatus(selectedBooking.id, 'awaiting_otp'); }}>Mark as Complete <ArrowRight size={17} /></button>
+              {bookingError && <small className="error-text" style={{ color: 'red', display: 'block', marginBottom: '0.5rem' }}>{bookingError}</small>}
+              <button
+                className="primary-button"
+                onClick={() => updateBookingStatus(selectedBooking.id, 'awaiting_otp')}
+                disabled={isBookingLoading}
+              >
+                {isBookingLoading ? <Loader2 size={17} className="spin" /> : <>Mark as Complete <ArrowRight size={17} /></>}
+              </button>
             </div>
           )}
           {selectedBooking.status === 'awaiting_otp' && (
@@ -68,21 +83,29 @@ export function Tracking() {
               <ShieldCheck size={28} />
               <h3>Enter OTP to release payment</h3>
               <p>Your worker has completed the service. Enter the 4-digit OTP they shared with you to release the escrow payment.</p>
-              <OtpInput bookingId={selectedBooking.id} expectedOtp={selectedBooking.otp} />
+              <OtpInput bookingId={selectedBooking.id} />
             </div>
           )}
           {isCompleted && (
             <div className="tracking-action-box">
               <h3>Service Completed!</h3>
               <p>Payment has been released to the worker. Please rate your experience.</p>
-              <button className="primary-button" onClick={() => navigate('review')}>Leave a Review <ArrowRight size={17} /></button>
+              {selectedBooking.escrowResult && (
+                <div className="escrow-breakdown" style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}>
+                  <p><strong>Worker Payout:</strong> ₹{selectedBooking.escrowResult.worker_payout}</p>
+                  <p><strong>Cooperative Commission:</strong> ₹{selectedBooking.escrowResult.coop_commission}</p>
+                </div>
+              )}
+              <button className="primary-button" onClick={() => navigate('review')} style={{ marginTop: '1rem' }}>
+                Leave a Review <ArrowRight size={17} />
+              </button>
             </div>
           )}
         </div>
 
         <aside className="checkout-summary">
           <h3>Booking Summary</h3>
-          <div className="summary-row"><span>Booking ID</span><strong>#{selectedBooking.id.toUpperCase()}</strong></div>
+          <div className="summary-row"><span>Booking ID</span><strong>#{selectedBooking.id.toUpperCase().slice(0, 8)}</strong></div>
           <div className="summary-row"><span>Service</span><strong>{selectedBooking.serviceName}</strong></div>
           <div className="summary-row"><span>Worker</span><strong>{selectedBooking.workerName}</strong></div>
           <div className="summary-row"><span>Date</span><strong>{selectedBooking.date}</strong></div>
@@ -96,13 +119,17 @@ export function Tracking() {
   );
 }
 
-function OtpInput({ bookingId, expectedOtp }: { bookingId: string; expectedOtp: string }) {
-  const { otpInput, setOtpInput, releasePayment, navigate } = useAppStore();
-  const [error, setError] = useState(false);
+function OtpInput({ bookingId }: { bookingId: string }) {
+  const { otpInput, setOtpInput, verifyOtp, navigate, isBookingLoading } = useAppStore();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleVerify = () => {
-    if (otpInput === expectedOtp) { releasePayment(bookingId); navigate('review'); }
-    else setError(true);
+  const handleVerify = async () => {
+    try {
+      await verifyOtp(bookingId, otpInput);
+      navigate('review');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Invalid OTP');
+    }
   };
 
   return (
@@ -111,13 +138,19 @@ function OtpInput({ bookingId, expectedOtp }: { bookingId: string; expectedOtp: 
         type="text"
         maxLength={4}
         value={otpInput}
-        onChange={(e) => { setOtpInput(e.target.value.replace(/\D/g, '')); setError(false); }}
+        onChange={(e) => { setOtpInput(e.target.value.replace(/\D/g, '')); setErrorMsg(null); }}
         placeholder="Enter 4-digit OTP"
         className="otp-input"
       />
-      {error && <small className="error-text">Incorrect OTP. Please check with your worker.</small>}
-      <button className="primary-button full" onClick={handleVerify} disabled={otpInput.length !== 4}>
-        Verify & Release Payment <ArrowRight size={17} />
+      {errorMsg && <small className="error-text">{errorMsg}</small>}
+      <button
+        className="primary-button full"
+        onClick={handleVerify}
+        disabled={otpInput.length !== 4 || isBookingLoading}
+      >
+        {isBookingLoading
+          ? <><Loader2 size={17} className="spin" /> Verifying OTP…</>
+          : <>Verify &amp; Release Payment <ArrowRight size={17} /></>}
       </button>
     </div>
   );

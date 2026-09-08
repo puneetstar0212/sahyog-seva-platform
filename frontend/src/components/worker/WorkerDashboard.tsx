@@ -1,11 +1,18 @@
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, MapPin, Star, TrendingUp, Wallet, Wrench } from 'lucide-react';
+import { useEffect } from 'react';
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, MapPin, Star, TrendingUp, Wallet, Wrench, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { workerEarnings } from '@/data/mockData';
 
 export function WorkerDashboard() {
-  const { navigate, workerOnline, setWorkerOnline, gigs, bookings } = useAppStore();
-  const openGigs = gigs.filter((g) => g.status === 'open');
-  const myJobs = bookings.filter((b) => b.workerId === 'w2' && !['released', 'completed', 'cancelled'].includes(b.status));
+  const { navigate, workerOnline, setWorkerOnline, gigs, bookings, fetchGigs, profile, workerProfile, workerEarnings, fetchWorkerEarnings, isGigsLoading, gigsError } = useAppStore();
+  const openGigs = gigs.filter((g) => g.status === 'open' || g.status === 'SEARCHING');
+  const workerId = useAppStore.getState().session?.user?.id || 'w2';
+
+  useEffect(() => {
+    void fetchGigs();
+    void fetchWorkerEarnings(workerId);
+  }, [fetchGigs, fetchWorkerEarnings, workerId]);
+  
+  const myJobs = bookings.filter((b) => b.workerId === workerId && !['released', 'completed', 'cancelled'].includes(b.status));
 
   return (
     <main className="container page-main">
@@ -13,19 +20,46 @@ export function WorkerDashboard() {
         <div className="worker-photo large"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAClkBPhMbnqYSRWOSFN2NOc_VEGKH2EBE5OxYSzztUMRby_8mqW11lK7rNpGQBtBGqRprR_zbPys0SuXFVTSkNqhumPiJOaCoKNVF2-T1XN1IFzeS4_2GWxlhe8WkmBiVZVjlapqdBuDjss-JuZGltpLPqxQ5Ue9zNRFnRbJF2_t_gbOtVVjxDoZuWNdUeOD-GYV2An1NDYYg5ae8rMnkjv1aRErqfFIRPBWhaljWbuGJNFvXxQ5QWNw" alt="Rajesh Kumar" /></div>
         <div>
           <span className="eyebrow">Worker Dashboard</span>
-          <h1>Rajesh Kumar</h1>
-          <p>Expert Electrician · Bharat Workers Co-op · Verified</p>
+          <h1>{profile?.full_name || 'Worker'}</h1>
+          <p>
+            {workerProfile?.skills?.[0] || 'Worker'} · Bharat Workers Co-op ·{' '}
+            <span className={`capitalize font-medium ${workerProfile?.approval_status === 'approved' ? 'text-emerald-600' : workerProfile?.approval_status === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>
+              {workerProfile?.approval_status === 'approved' ? 'Verified' : workerProfile?.approval_status === 'rejected' ? 'Rejected' : 'Pending Verification'}
+            </span>
+          </p>
         </div>
-        <button className={`toggle-button ${workerOnline ? 'online' : 'offline'}`} onClick={() => setWorkerOnline(!workerOnline)}>
+        <button 
+          className={`toggle-button ${workerOnline ? 'online' : 'offline'} ${workerProfile?.approval_status !== 'approved' ? 'opacity-50 cursor-not-allowed' : ''}`} 
+          onClick={() => {
+            if (workerProfile?.approval_status === 'approved') setWorkerOnline(!workerOnline);
+          }}
+          disabled={workerProfile?.approval_status !== 'approved'}
+        >
           <span className="toggle-dot" /> {workerOnline ? 'Online' : 'Go Online'}
         </button>
       </div>
 
       <div className="dashboard-stats-grid">
-        <div className="stat-card"><Wallet size={22} /><strong>₹{workerEarnings.thisMonth.toLocaleString()}</strong><span>This Month</span></div>
-        <div className="stat-card"><BriefcaseBusiness size={22} /><strong>{workerEarnings.jobsCompleted}</strong><span>Jobs Completed</span></div>
-        <div className="stat-card"><Star size={22} /><strong>{workerEarnings.averageRating}</strong><span>Average Rating</span></div>
-        <div className="stat-card"><TrendingUp size={22} /><strong>₹{workerEarnings.pendingPayout.toLocaleString()}</strong><span>Pending Payout</span></div>
+        <div className="stat-card" onClick={() => navigate('earnings')}>
+          <Wallet size={22} />
+          <strong>₹{workerEarnings?.thisMonth?.toLocaleString() || 0}</strong>
+          <span>This Month</span>
+        </div>
+        <div className="stat-card">
+          <CheckCircle2 size={22} />
+          <strong>{workerEarnings?.jobsCompleted || 0}</strong>
+          <span>Jobs Done</span>
+        </div>
+        <div className="stat-card">
+          <Star size={22} />
+          <strong>{workerEarnings?.averageRating || '0.0'}</strong>
+          <span>Rating</span>
+        </div>
+        <div className="stat-card">
+          <TrendingUp size={22} />
+          <strong>₹{workerEarnings?.pendingPayout?.toLocaleString() || 0}</strong>
+          <span>Pending Payout</span>
+        </div>
       </div>
 
       <section className="dashboard-section">
@@ -33,8 +67,15 @@ export function WorkerDashboard() {
           <h2>Available Gigs ({openGigs.length})</h2>
           <button className="text-button" onClick={() => navigate('gigFeed')}>View all <ArrowRight size={16} /></button>
         </div>
-        <div className="gig-list">
-          {openGigs.slice(0, 3).map((gig) => (
+        {isGigsLoading ? (
+          <div className="loading-row" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', opacity: 0.6 }}><Loader2 size={16} className="spin" /><small>Loading gigs…</small></div>
+        ) : gigsError ? (
+          <div className="error-text" style={{ color: 'red', marginBottom: '1rem' }}>Failed to load gigs: {gigsError}</div>
+        ) : openGigs.length === 0 ? (
+          <div className="empty-state small"><h3>No gigs available</h3><p>Check back later.</p></div>
+        ) : (
+          <div className="gig-list">
+            {openGigs.slice(0, 3).map((gig) => (
             <article className="gig-card" key={gig.id}>
               <div className="gig-card-info">
                 <h3>{gig.serviceName}</h3>
@@ -53,6 +94,7 @@ export function WorkerDashboard() {
             </article>
           ))}
         </div>
+        )}
       </section>
 
       <section className="dashboard-section">

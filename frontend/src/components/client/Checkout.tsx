@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ArrowRight, CalendarDays, ChevronLeft, Clock3, MapPin } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChevronLeft, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export function Checkout() {
-  const { selectedService, selectedWorker, navigate, createBooking } = useAppStore();
+  const { selectedService, selectedWorker, navigate, createBooking, isBookingSubmitting, bookingError, session } = useAppStore();
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [address, setAddress] = useState('');
@@ -14,22 +14,25 @@ export function Checkout() {
   const pricePerUnit = selectedWorker?.pricePerHour ?? selectedService.basePrice;
   const total = pricePerUnit * hours;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!date || !time || !address) return;
-    const bookingId = createBooking({
+    if (isBookingSubmitting) return; // Guard against double-click
+
+    await createBooking({
       serviceId: selectedService.id,
       serviceName: selectedService.name,
       workerId: selectedWorker?.id ?? 'w1',
       workerName: selectedWorker?.name ?? 'Auto-assigned',
       workerImage: selectedWorker?.image ?? '',
-      clientId: 'c1',
-      clientName: 'Ananya Sharma',
-      clientImage: 'AS',
+      clientId: session?.user.id ?? 'c1',
+      clientName: session?.user.email?.split('@')[0] ?? 'Ananya Sharma',
+      clientImage: session?.user.email?.slice(0, 2).toUpperCase() ?? 'AS',
       date,
       time,
       address,
       price: total,
     });
+    // Navigate even if API failed — optimistic booking is already in Zustand
     navigate('payment');
   };
 
@@ -61,8 +64,22 @@ export function Checkout() {
           <div className="summary-row"><span>Duration</span><strong>{hours} hours</strong></div>
           <div className="summary-divider" />
           <div className="summary-row total"><span>Total</span><strong>₹{total}</strong></div>
-          <button className="primary-button full large" onClick={handleConfirm} disabled={!date || !time || !address}>
-            Proceed to Payment <ArrowRight size={17} />
+
+          {bookingError && (
+            <small className="error-text" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              ⚠ {bookingError} (continuing in demo mode)
+            </small>
+          )}
+
+          <button
+            className="primary-button full large"
+            onClick={handleConfirm}
+            disabled={!date || !time || !address || isBookingSubmitting}
+            id="checkout-confirm-btn"
+          >
+            {isBookingSubmitting
+              ? <><Loader2 size={17} className="spin" /> Creating booking…</>
+              : <>Proceed to Payment <ArrowRight size={17} /></>}
           </button>
           {!date || !time || !address ? <small className="form-hint">Fill in date, time and address to continue</small> : null}
         </aside>

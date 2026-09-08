@@ -31,8 +31,8 @@ export function Dashboard() {
       });
       setShowPostGig(false);
       setGigForm({ title: '', description: '', price: 500, address: 'Bandra West, Mumbai' });
-    } catch (err: any) {
-      setPostError(err.message || 'Failed to post gig');
+    } catch (err: unknown) {
+      setPostError(err instanceof Error ? err.message : 'Failed to post gig');
     } finally {
       setIsPosting(false);
     }

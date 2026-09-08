@@ -1,10 +1,14 @@
-import { useState, useMemo } from 'react';
-import { ArrowRight, BadgeCheck, BriefcaseBusiness, ChevronLeft, Clock3, MapPin, Search, Star } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { BadgeCheck, BriefcaseBusiness, ChevronLeft, Clock3, MapPin, Search, Star } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export function Workers() {
-  const { workers, selectWorker, navigate } = useAppStore();
+  const { workers, selectWorker, navigate, fetchWorkers } = useAppStore();
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    void fetchWorkers();
+  }, [fetchWorkers]);
 
   const filtered = useMemo(() => workers.filter((w) => `${w.name} ${w.role}`.toLowerCase().includes(query.toLowerCase())), [query, workers]);
 

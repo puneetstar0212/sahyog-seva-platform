@@ -1,6 +1,5 @@
 import { Leaf } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import type { Portal } from '@/types';
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   const setPortal = useAppStore((s) => s.setPortal);

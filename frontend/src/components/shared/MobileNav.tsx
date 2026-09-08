@@ -1,6 +1,6 @@
-import { House, Wrench, CalendarDays, CircleUserRound, Users, ShieldCheck, BarChart3, Wallet } from 'lucide-react';
+import { House, Wrench, CalendarDays, CircleUserRound, Users, BarChart3, Wallet } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import type { Portal, Screen } from '@/types';
+import type { Screen } from '@/types';
 
 export function MobileNav() {
   const { portal, screen, navigate } = useAppStore();

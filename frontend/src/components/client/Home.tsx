@@ -1,12 +1,17 @@
-import { useState, useMemo } from 'react';
-import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, HandHeart, House, Leaf, Search, ShieldCheck, Sparkles, Star, Users, Wrench } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, HandHeart, House, ShieldCheck, Sparkles, Users, Wrench } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { heroImages } from '@/data/mockData';
 import { ServiceIcon } from '@/components/shared/ServiceIcon';
 
 export function Home() {
-  const { navigate, services } = useAppStore();
+  const { navigate, services, fetchGigs, fetchWorkers } = useAppStore();
   const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    void fetchGigs();
+    void fetchWorkers();
+  }, [fetchGigs, fetchWorkers]);
 
   return (
     <>

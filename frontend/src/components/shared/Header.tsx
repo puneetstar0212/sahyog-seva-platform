@@ -1,4 +1,4 @@
-import { Menu, X, Search, CircleUserRound, Users, ShieldCheck } from 'lucide-react';
+import { Menu, X, CircleUserRound, Users, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import type { Portal, Screen } from '@/types';
@@ -68,6 +68,7 @@ export function Header() {
             {menuOpen ? <X size={21} /> : <Menu size={21} />}
           </button>
         </div>
+
       </div>
       {menuOpen && (
         <div className="mobile-menu">

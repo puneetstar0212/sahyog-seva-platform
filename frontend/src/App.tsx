@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/lib/supabase';
 import { Auth } from '@/components/auth/Auth';
+import { AdminLogin } from '@/components/auth/AdminLogin';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
 import { MobileNav } from '@/components/shared/MobileNav';
@@ -34,7 +35,7 @@ import { ManageCustomers } from '@/components/admin/ManageCustomers';
 import { ManageWorkers } from '@/components/admin/ManageWorkers';
 
 function App() {
-  const { portal, screen, setSession, setProfile, setWorkerProfile, setAuthLoading } = useAppStore();
+  const { portal, screen, session, profile, setSession, setProfile, setWorkerProfile, setAuthLoading } = useAppStore();
 
   useEffect(() => {
     let mounted = true;
@@ -94,6 +95,27 @@ function App() {
       }
     }
     if (portal === 'admin') {
+      if (!session) {
+        return <AdminLogin />;
+      }
+      if (profile?.role !== 'admin') {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <span className="text-red-600 text-3xl font-bold">!</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900">Access Denied</h2>
+            <p className="text-gray-600 mb-6 max-w-md">You do not have administrator privileges to view this area.</p>
+            <button 
+              className="px-6 py-2 bg-emerald-600 text-white rounded-md font-medium hover:bg-emerald-700 transition-colors" 
+              onClick={() => useAppStore.getState().setPortal('client')}
+            >
+              Return to Main App
+            </button>
+          </div>
+        );
+      }
+
       switch (screen) {
         case 'adminDashboard': return <AdminDashboard />;
         case 'societyManager': return <SocietyManager />;

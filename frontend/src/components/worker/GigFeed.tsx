@@ -11,7 +11,7 @@ export function GigFeed() {
     fetchGigs();
   }, [fetchGigs]);
 
-  const visible = useMemo(() => gigs.filter((g) => (filter === 'all' || g.status === 'open') && `${g.serviceName} ${g.description}`.toLowerCase().includes(query.toLowerCase())), [gigs, query, filter]);
+  const visible = useMemo(() => gigs.filter((g) => (filter === 'all' || g.status === 'open' || g.status === 'SEARCHING') && `${g.serviceName || g.title} ${g.description}`.toLowerCase().includes(query.toLowerCase())), [gigs, query, filter]);
 
   return (
     <main className="container page-main">
@@ -46,7 +46,7 @@ export function GigFeed() {
         {visible.map((gig) => (
           <article className="gig-card" key={gig.id}>
             <div className="gig-card-info">
-              <h3>{gig.serviceName}</h3>
+              <h3>{gig.serviceName || gig.title}</h3>
               <p>{gig.description}</p>
               <div className="worker-tags">
                 <span><MapPin size={13} /> {gig.distance}</span>
@@ -58,9 +58,9 @@ export function GigFeed() {
             </div>
             <div className="gig-card-right">
               <strong>₹{gig.price}</strong>
-              <div className={`status-badge ${gig.status === 'open' ? 'pending' : 'accepted'}`}>{gig.status}</div>
+              <div className={`status-badge ${gig.status === 'open' || gig.status === 'SEARCHING' ? 'pending' : 'accepted'}`}>{gig.status}</div>
               <button className="primary-button" onClick={() => { selectGig(gig); navigate('gigDetail'); }}>
-                {gig.status === 'open' ? 'View & Accept' : 'View Details'} <ArrowRight size={15} />
+                {gig.status === 'open' || gig.status === 'SEARCHING' ? 'View & Accept' : 'View Details'} <ArrowRight size={15} />
               </button>
             </div>
           </article>

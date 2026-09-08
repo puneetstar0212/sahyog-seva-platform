@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ArrowRight, BadgeCheck, BriefcaseBusiness, Check, ChevronLeft, CircleUserRound, FileUp, House, MapPin, Users, Wallet } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Check, ChevronLeft, FileUp } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { kycSteps } from '@/data/mockData';
 
 export function WorkerOnboarding() {
-  const { navigate, kycCompletedSteps, completeKycStep } = useAppStore();
+  const { navigate, completeKycStep } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
@@ -22,7 +22,7 @@ export function WorkerOnboarding() {
           <h2>Registration Complete!</h2>
           <p>Your profile has been submitted for verification. You'll be notified once your KYC is approved and you can start receiving gigs.</p>
           <div className="kyc-progress-summary">
-            {kycSteps.map((step, index) => (
+            {kycSteps.map((step) => (
               <div key={step.id} className="kyc-step-done">
                 <CheckCircle2Inline /> <span>{step.title}</span>
               </div>

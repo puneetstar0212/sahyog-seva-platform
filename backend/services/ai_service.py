@@ -48,7 +48,7 @@ def forecast_demand():
                     "content": prompt,
                 }
             ],
-            model="openai/gpt-oss-120b",
+            model="llama3-8b-8192",  # Valid Groq model (was: "openai/gpt-oss-120b" which doesn't exist)
             response_format={"type": "json_object"},
             temperature=0.5,
         )

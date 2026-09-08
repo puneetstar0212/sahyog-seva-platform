@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { ArrowRight, Check, ChevronLeft, CreditCard, Landmark, Smartphone, Wallet } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, CreditCard, Landmark, Smartphone, Wallet, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { api } from '@/lib/api';
 
 export function Payment() {
   const { selectedBooking, navigate, updateBookingStatus } = useAppStore();
   const [method, setMethod] = useState('upi');
   const [processing, setProcessing] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [escrowDetails, setEscrowDetails] = useState<{
+    worker_payout: number;
+    coop_commission: number;
+    status: string;
+  } | null>(null);
 
   if (!selectedBooking) { navigate('services'); return null; }
 
@@ -17,14 +24,36 @@ export function Payment() {
     { id: 'wallet', label: 'Sahyog Wallet', icon: Wallet, desc: 'Balance: ₹1,200' },
   ];
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    if (processing) return;
     setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
+    setError(null);
+    try {
+      let gigId = selectedBooking.gig_id;
+      if (!gigId) {
+        throw new Error('Booking is not properly linked to a gig. Please try creating the booking again.');
+      }
+
+      const escrowResult = await api.payments.lockEscrow({
+        gig_id: gigId,
+        amount: selectedBooking.price,
+      });
+
+      await updateBookingStatus(selectedBooking.id, 'accepted');
+      
+      setEscrowDetails({
+        worker_payout: escrowResult.worker_payout,
+        coop_commission: escrowResult.coop_commission,
+        status: escrowResult.status,
+      });
       setPaid(true);
-      updateBookingStatus(selectedBooking.id, 'accepted');
-    }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
   };
+
 
   if (paid) {
     return (
@@ -38,6 +67,14 @@ export function Payment() {
             <div className="summary-row"><span>Amount Paid</span><strong>₹{selectedBooking.price}</strong></div>
             <div className="summary-row"><span>Worker</span><strong>{selectedBooking.workerName}</strong></div>
             <div className="summary-row"><span>Date</span><strong>{selectedBooking.date} at {selectedBooking.time}</strong></div>
+            {escrowDetails && (
+              <>
+                <div className="summary-divider" style={{ margin: '1rem 0', height: 1, background: '#eee' }} />
+                <div className="summary-row"><span>Escrow Status</span><strong>{escrowDetails.status}</strong></div>
+                <div className="summary-row"><span>Worker Payout</span><strong>₹{escrowDetails.worker_payout}</strong></div>
+                <div className="summary-row"><span>Cooperative Amount</span><strong>₹{escrowDetails.coop_commission}</strong></div>
+              </>
+            )}
           </div>
           <div className="receipt-actions">
             <button className="primary-button" onClick={() => navigate('tracking')}>Track Booking <ArrowRight size={17} /></button>
@@ -71,8 +108,14 @@ export function Payment() {
           <div className="summary-row"><span>Time</span><strong>{selectedBooking.time}</strong></div>
           <div className="summary-divider" />
           <div className="summary-row total"><span>Total</span><strong>₹{selectedBooking.price}</strong></div>
+          {error && (
+            <small className="error-text" style={{ display: 'block', marginBottom: '0.5rem', color: 'red' }}>
+              ⚠ {error}
+            </small>
+          )}
           <button className="primary-button full large" onClick={handlePay} disabled={processing}>
-            {processing ? 'Processing...' : `Pay ₹${selectedBooking.price} <ArrowRight size={17} />`}
+            {processing ? <><Loader2 size={17} className="spin" /> Processing…</> : `Pay ₹${selectedBooking.price} `}
+            {!processing && <ArrowRight size={17} />}
           </button>
           <small className="form-hint">Payment is held in escrow and released to the worker after OTP verification.</small>
         </aside>

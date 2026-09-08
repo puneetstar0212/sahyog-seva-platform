@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Search, Users, CircleUserRound, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Search, Users, CircleUserRound, Mail, Phone, MapPin } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/supabase';
@@ -12,7 +12,10 @@ export function ManageCustomers() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('role', 'customer').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'customer').order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching customers:', error);
+      }
       setCustomers((data as Profile[]) ?? []);
       setLoading(false);
     })();

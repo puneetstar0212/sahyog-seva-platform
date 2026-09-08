@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Check, ChevronLeft, CircleUserRound, Eye, EyeOff, Lock, Mail, Phone, MapPin, User, Wrench, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, CircleUserRound, Eye, EyeOff, Lock, Mail, Phone, MapPin, User, Wrench } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/lib/supabase';
 
@@ -52,7 +52,7 @@ export function Auth() {
       if (error) throw error;
       if (!data.user) throw new Error('Registration failed');
 
-      const { error: profileError } = await supabase.from('profiles').insert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         email: form.email,
         full_name: form.fullName,
@@ -72,6 +72,7 @@ export function Auth() {
           working_hours: form.workingHours,
         });
         if (workerError) throw workerError;
+
       }
 
       if (role === 'worker') {
@@ -104,17 +105,31 @@ export function Auth() {
       });
       if (error) throw error;
       if (data.user) {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
+        let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
+        if (!profile) {
+          const { data: newProfile } = await supabase.from('profiles').insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: data.user.email?.split('@')[0] || 'User',
+            role: 'customer',
+          }).select().maybeSingle();
+          profile = newProfile;
+        }
         if (profile) {
           useAppStore.getState().setProfile(profile as never);
           if ((profile as { role: string }).role === 'admin') setPortal('admin');
-          else if ((profile as { role: string }).role === 'worker') setPortal('worker');
-          else setPortal('client');
+          else if ((profile as { role: string }).role === 'worker') {
+            const { data: workerProfile } = await supabase.from('worker_profiles').select('*').eq('user_id', data.user.id).maybeSingle();
+            if (workerProfile) useAppStore.getState().setWorkerProfile(workerProfile as never);
+            setPortal('worker');
+          } else {
+            setPortal('client');
+          }
         }
         navigate('home');
       }
-    } catch {
-      setAuthError('Invalid email or password. Please try again.');
+    } catch (err: unknown) {
+      setAuthError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
     } finally {
       setAuthLoading(false);
     }

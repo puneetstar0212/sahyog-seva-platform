@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, text, Numeric
 from sqlalchemy.orm import declarative_base, relationship
 from geoalchemy2 import Geography
 from datetime import datetime
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 Base = declarative_base()
 
@@ -18,7 +20,8 @@ class WorkerProfile(Base):
     last_settlement_date = Column(DateTime, default=datetime.utcnow)
     is_blocked_for_cash = Column(Boolean, default=False)
     
-    gigs = relationship('Gig', back_populates='worker')
+    
+    # We remove gigs relationship here since gigs worker_id points to profiles.id now in Supabase.
 
     def to_dict(self):
         return {
@@ -33,21 +36,35 @@ class WorkerProfile(Base):
 class Gig(Base):
     __tablename__ = 'gigs'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    worker_id = Column(Integer, ForeignKey('worker_profiles.id'), nullable=False)
-    total_amount = Column(Float, nullable=False)
-    payment_mode = Column(String(20), nullable=False) # 'CASH' or 'ONLINE'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    consumer_id = Column(UUID(as_uuid=True), nullable=True)
+    worker_id = Column(UUID(as_uuid=True), nullable=True)
+    title = Column(String, nullable=False, default='')
+    description = Column(String, default='')
+    budget = Column(Float, default=0.00)
+    status = Column(String, nullable=False, default='SEARCHING')
+    payment_mode = Column(String(20), nullable=False, default='ONLINE') # 'CASH' or 'ONLINE'
+    total_amount = Column(Float, nullable=False, default=0.00)
+    assigned_worker_id = Column(UUID(as_uuid=True), nullable=True)
+    accepted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    worker = relationship('WorkerProfile', back_populates='gigs')
-    escrow = relationship('EscrowTransaction', back_populates='gig', uselist=False)
+    # Note: Relationships might need adjustment if profiles model exists, but assuming it's unmapped in this file
+    # we can define it simply or omit relationship definitions if they are not used.
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'worker_id': self.worker_id,
+            'id': str(self.id),
+            'consumer_id': str(self.consumer_id) if self.consumer_id else None,
+            'worker_id': str(self.worker_id) if self.worker_id else None,
+            'title': self.title,
+            'description': self.description,
+            'budget': self.budget,
+            'status': self.status,
             'total_amount': self.total_amount,
             'payment_mode': self.payment_mode,
+            'assigned_worker_id': str(self.assigned_worker_id) if self.assigned_worker_id else None,
+            'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -55,14 +72,12 @@ class EscrowTransaction(Base):
     __tablename__ = 'escrow_transactions'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    gig_id = Column(Integer, ForeignKey('gigs.id'), nullable=False, unique=True)
+    gig_id = Column(UUID(as_uuid=True), ForeignKey('gigs.id'), nullable=False, unique=True)
     amount = Column(Float, nullable=False)
     status = Column(String(20), default='IDLE') # 'IDLE', 'LOCKED', 'RELEASED'
     worker_payout = Column(Float, nullable=False)
     coop_commission = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    gig = relationship('Gig', back_populates='escrow')
 
     def to_dict(self):
         return {
@@ -72,6 +87,32 @@ class EscrowTransaction(Base):
             'status': self.status,
             'worker_payout': self.worker_payout,
             'coop_commission': self.coop_commission
+        }
+
+class CooperativeTransaction(Base):
+    __tablename__ = 'cooperative_transactions'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    booking_id = Column(UUID(as_uuid=True), nullable=False, unique=True, index=True)
+    worker_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    cooperative_id = Column(String(50), nullable=False, index=True, default='CENTRAL_COOP')
+    gross_amount = Column(Numeric(10, 2), nullable=False)
+    worker_amount = Column(Numeric(10, 2), nullable=False)
+    cooperative_amount = Column(Numeric(10, 2), nullable=False)
+    transaction_status = Column(String(20), default='COMPLETED')
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'booking_id': str(self.booking_id),
+            'worker_id': str(self.worker_id),
+            'cooperative_id': self.cooperative_id,
+            'gross_amount': self.gross_amount,
+            'worker_amount': self.worker_amount,
+            'cooperative_amount': self.cooperative_amount,
+            'transaction_status': self.transaction_status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 def setup_database(engine):
