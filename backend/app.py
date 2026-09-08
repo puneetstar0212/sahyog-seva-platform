@@ -514,8 +514,8 @@ VALID_BOOKING_STATUSES = {
 
 VALID_TRANSITIONS = {
     'pending': ['accepted', 'cancelled'],
-    'accepted': ['travelling', 'cancelled'],
-    'travelling': ['arrived'],
+    'accepted': ['travelling', 'working', 'cancelled'],
+    'travelling': ['arrived', 'working'],
     'arrived': ['working'],
     'working': ['awaiting_otp'],
     'awaiting_otp': ['completed'],
@@ -531,6 +531,20 @@ def _row_to_dict(row):
             d[k] = str(v)
         elif hasattr(v, 'isoformat'):
             d[k] = v.isoformat()
+            
+    if 'price' in d and d['price'] is not None:
+        try:
+            gross = float(d['price'])
+            worker_payout = round(gross * 0.95, 2)
+            coop_contribution = round(gross - worker_payout, 2)
+            d['price_breakdown'] = {
+                'gross_amount': gross,
+                'worker_payout': worker_payout,
+                'cooperative_contribution': coop_contribution
+            }
+        except ValueError:
+            pass
+            
     return d
 
 

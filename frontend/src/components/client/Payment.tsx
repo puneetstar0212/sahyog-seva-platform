@@ -71,8 +71,8 @@ export function Payment() {
               <>
                 <div className="summary-divider" style={{ margin: '1rem 0', height: 1, background: '#eee' }} />
                 <div className="summary-row"><span>Escrow Status</span><strong>{escrowDetails.status}</strong></div>
-                <div className="summary-row"><span>Worker Payout</span><strong>₹{escrowDetails.worker_payout}</strong></div>
-                <div className="summary-row"><span>Cooperative Amount</span><strong>₹{escrowDetails.coop_commission}</strong></div>
+                <div className="summary-row"><span>Worker Payout (95%)</span><strong>₹{escrowDetails.worker_payout}</strong></div>
+                <div className="summary-row"><span>Cooperative/Welfare Contribution (5%)</span><strong>₹{escrowDetails.coop_commission}</strong></div>
               </>
             )}
           </div>
@@ -107,7 +107,19 @@ export function Payment() {
           <div className="summary-row"><span>Date</span><strong>{selectedBooking.date}</strong></div>
           <div className="summary-row"><span>Time</span><strong>{selectedBooking.time}</strong></div>
           <div className="summary-divider" />
-          <div className="summary-row total"><span>Total</span><strong>₹{selectedBooking.price}</strong></div>
+          <div className="summary-row total"><span>Gross Amount</span><strong>₹{selectedBooking.price}</strong></div>
+          {selectedBooking.price_breakdown && (
+            <>
+              <div className="summary-row" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Worker Payout (95%)</span>
+                <strong>₹{selectedBooking.price_breakdown.worker_payout}</strong>
+              </div>
+              <div className="summary-row" style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Cooperative/Welfare Contribution (5%)</span>
+                <strong>₹{selectedBooking.price_breakdown.cooperative_contribution}</strong>
+              </div>
+            </>
+          )}
           {error && (
             <small className="error-text" style={{ display: 'block', marginBottom: '0.5rem', color: 'red' }}>
               ⚠ {error}

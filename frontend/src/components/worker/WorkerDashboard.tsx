@@ -112,7 +112,10 @@ export function WorkerDashboard() {
                 </div>
                 <div className="booking-list-right">
                   <div className={`status-badge ${job.status}`}>{job.status.replace('_', ' ')}</div>
-                  <strong>₹{job.price}</strong>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)' }}>Gross: ₹{job.price}</div>
+                    <strong>Payout: ₹{job.price_breakdown ? job.price_breakdown.worker_payout : (job.price * 0.95).toFixed(2)}</strong>
+                  </div>
                   <button className="primary-button" onClick={() => { useAppStore.getState().selectBooking(job); navigate('executionMode'); }}>Start Job <ArrowRight size={15} /></button>
                 </div>
               </article>

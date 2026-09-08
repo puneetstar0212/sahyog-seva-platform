@@ -97,9 +97,19 @@ export function GigDetail() {
           </div>
           <div className="gig-detail-section">
             <h3>Payment</h3>
-            <div className="gig-detail-price">
-              <strong>₹{selectedGig.price}</strong>
-              <small>Payment held in escrow, released after OTP verification</small>
+            <div className="gig-detail-price" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div>
+                <strong style={{ fontSize: '1.2rem' }}>₹{selectedGig.price}</strong> <span style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.9rem' }}>(Gross Amount)</span>
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Expected Worker Payout (95%): </span>
+                <strong>₹{(selectedGig.price * 0.95).toFixed(2)}</strong>
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Cooperative/Welfare Contribution (5%): </span>
+                <strong>₹{(selectedGig.price * 0.05).toFixed(2)}</strong>
+              </div>
+              <small style={{ marginTop: '0.5rem', display: 'block' }}>Payment held in escrow, released after OTP verification</small>
             </div>
           </div>
         </div>

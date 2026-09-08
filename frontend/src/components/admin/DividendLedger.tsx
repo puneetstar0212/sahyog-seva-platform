@@ -35,9 +35,9 @@ export function DividendLedger() {
     <main className="container page-main">
       <button className="text-button back-link" onClick={() => navigate('adminDashboard')}><ChevronLeft size={17} /> Back to Overview</button>
       <div className="dashboard-intro">
-        <span className="eyebrow">Dividend Ledger</span>
-        <h1>Cooperative Transactions</h1>
-        <p>Track and manage 5% cooperative commissions from gigs.</p>
+        <span className="eyebrow">Cooperative & Welfare Ledger</span>
+        <h1>Cooperative/Welfare Contributions (5%)</h1>
+        <p>Track and manage the 5% cooperative and welfare contributions from completed gigs.</p>
       </div>
 
       <div className="dashboard-stats-grid">

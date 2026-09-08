@@ -164,7 +164,7 @@ export function ExecutionMode() {
             <div className="execution-action-box">
               <span className="success-icon"><Check size={28} /></span>
               <h3>Payment Released!</h3>
-              <p>Payment of ₹{selectedBooking.price} has been released to your account. Great work!</p>
+              <p>Payment of ₹{selectedBooking.price_breakdown ? selectedBooking.price_breakdown.worker_payout : (selectedBooking.price * 0.95).toFixed(2)} has been released to your account. Great work!</p>
               <button className="primary-button" onClick={() => navigate('earnings')}>View Earnings <ArrowRight size={17} /></button>
               <button className="outline-button" onClick={() => navigate('workerDashboard')}>Back to Dashboard</button>
             </div>
@@ -179,7 +179,19 @@ export function ExecutionMode() {
           <div className="summary-row"><span>Date</span><strong>{selectedBooking.date}</strong></div>
           <div className="summary-row"><span>Time</span><strong>{selectedBooking.time}</strong></div>
           <div className="summary-divider" />
-          <div className="summary-row total"><span>Earnings</span><strong>₹{selectedBooking.price}</strong></div>
+          <div className="summary-row total"><span>Gross Amount</span><strong>₹{selectedBooking.price}</strong></div>
+          {selectedBooking.price_breakdown && (
+            <>
+              <div className="summary-row" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Your Payout (95%)</span>
+                <strong>₹{selectedBooking.price_breakdown.worker_payout}</strong>
+              </div>
+              <div className="summary-row" style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Cooperative Contribution (5%)</span>
+                <strong>₹{selectedBooking.price_breakdown.cooperative_contribution}</strong>
+              </div>
+            </>
+          )}
         </aside>
       </div>
     </main>

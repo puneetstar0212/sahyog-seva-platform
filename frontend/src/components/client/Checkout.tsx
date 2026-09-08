@@ -63,7 +63,16 @@ export function Checkout() {
           <div className="summary-row"><span>Rate</span><strong>₹{pricePerUnit}/hr</strong></div>
           <div className="summary-row"><span>Duration</span><strong>{hours} hours</strong></div>
           <div className="summary-divider" />
-          <div className="summary-row total"><span>Total</span><strong>₹{total}</strong></div>
+          <div className="summary-row total"><span>Gross Amount</span><strong>₹{total}</strong></div>
+          
+          <div className="summary-row" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+            <span>Worker Payout (95%)</span>
+            <strong>₹{Math.round(total * 0.95)}</strong>
+          </div>
+          <div className="summary-row" style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+            <span>Cooperative Contribution (5%)</span>
+            <strong>₹{Math.round(total * 0.05)}</strong>
+          </div>
 
           {bookingError && (
             <small className="error-text" style={{ display: 'block', marginBottom: '0.5rem' }}>

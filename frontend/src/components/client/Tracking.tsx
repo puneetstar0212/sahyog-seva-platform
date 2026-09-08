@@ -90,10 +90,10 @@ export function Tracking() {
             <div className="tracking-action-box">
               <h3>Service Completed!</h3>
               <p>Payment has been released to the worker. Please rate your experience.</p>
-              {selectedBooking.escrowResult && (
+              {selectedBooking.price_breakdown && (
                 <div className="escrow-breakdown" style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}>
-                  <p><strong>Worker Payout:</strong> ₹{selectedBooking.escrowResult.worker_payout}</p>
-                  <p><strong>Cooperative Commission:</strong> ₹{selectedBooking.escrowResult.coop_commission}</p>
+                  <p><strong>Worker Payout (95%):</strong> ₹{selectedBooking.price_breakdown.worker_payout}</p>
+                  <p><strong>Cooperative/Welfare Contribution (5%):</strong> ₹{selectedBooking.price_breakdown.cooperative_contribution}</p>
                 </div>
               )}
               <button className="primary-button" onClick={() => navigate('review')} style={{ marginTop: '1rem' }}>
@@ -111,7 +111,19 @@ export function Tracking() {
           <div className="summary-row"><span>Date</span><strong>{selectedBooking.date}</strong></div>
           <div className="summary-row"><span>Time</span><strong>{selectedBooking.time}</strong></div>
           <div className="summary-divider" />
-          <div className="summary-row total"><span>Amount</span><strong>₹{selectedBooking.price}</strong></div>
+          <div className="summary-row total"><span>Gross Amount</span><strong>₹{selectedBooking.price}</strong></div>
+          {selectedBooking.price_breakdown && (
+            <>
+              <div className="summary-row" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Worker Payout (95%)</span>
+                <strong>₹{selectedBooking.price_breakdown.worker_payout}</strong>
+              </div>
+              <div className="summary-row" style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
+                <span>Cooperative/Welfare Contribution (5%)</span>
+                <strong>₹{selectedBooking.price_breakdown.cooperative_contribution}</strong>
+              </div>
+            </>
+          )}
           <div className={`status-badge ${selectedBooking.status}`}>{selectedBooking.status.replace('_', ' ')}</div>
         </aside>
       </div>

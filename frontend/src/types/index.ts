@@ -100,6 +100,15 @@ export interface Booking {
   gig_id?: string;        // optional link to a gig UUID
   rating?: number;
   reviewText?: string;
+  price_breakdown?: {
+    gross_amount: number;
+    worker_payout: number;
+    cooperative_contribution: number;
+  };
+  escrowResult?: {
+    worker_payout: number;
+    coop_commission: number;
+  };
 }
 
 export interface ChatMessage {
