@@ -16,6 +16,8 @@ RETURNS TRIGGER AS $$
 DECLARE
   _role TEXT;
   _full_name TEXT;
+  _phone TEXT;
+  _address TEXT;
 BEGIN
   -- Read role from metadata, default to 'customer', NEVER allow 'admin' via public signup
   _role := COALESCE(NEW.raw_user_meta_data->>'role', 'customer');
@@ -24,14 +26,42 @@ BEGIN
   END IF;
 
   _full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', '');
+  _phone := COALESCE(NEW.raw_user_meta_data->>'phone', '');
+  _address := COALESCE(NEW.raw_user_meta_data->>'address', '');
 
-  INSERT INTO public.profiles (id, email, full_name, role)
-  VALUES (NEW.id, NEW.email, _full_name, _role)
+  INSERT INTO public.profiles (id, email, full_name, role, phone, address)
+  VALUES (NEW.id, NEW.email, _full_name, _role, _phone, _address)
   ON CONFLICT (id) DO UPDATE
     SET
       email = EXCLUDED.email,
       full_name = CASE WHEN EXCLUDED.full_name <> '' THEN EXCLUDED.full_name ELSE public.profiles.full_name END,
+      phone = CASE WHEN EXCLUDED.phone <> '' THEN EXCLUDED.phone ELSE public.profiles.phone END,
+      address = CASE WHEN EXCLUDED.address <> '' THEN EXCLUDED.address ELSE public.profiles.address END,
       role = CASE WHEN public.profiles.role = 'customer' AND EXCLUDED.role IN ('customer', 'worker') THEN EXCLUDED.role ELSE public.profiles.role END;
+
+  IF _role = 'worker' THEN
+    INSERT INTO public.worker_profiles (
+      user_id,
+      skills,
+      experience_years,
+      hourly_rate,
+      working_hours,
+      approval_status
+    ) VALUES (
+      NEW.id,
+      string_to_array(COALESCE(NEW.raw_user_meta_data->>'skills', ''), ','),
+      COALESCE(NULLIF(NEW.raw_user_meta_data->>'experience_years', '')::numeric, 0),
+      COALESCE(NULLIF(NEW.raw_user_meta_data->>'hourly_rate', '')::numeric, 0),
+      COALESCE(NEW.raw_user_meta_data->>'working_hours', ''),
+      'pending'
+    ) ON CONFLICT (user_id) DO UPDATE
+      SET
+        skills = EXCLUDED.skills,
+        experience_years = EXCLUDED.experience_years,
+        hourly_rate = EXCLUDED.hourly_rate,
+        working_hours = EXCLUDED.working_hours,
+        approval_status = 'pending';
+  END IF;
 
   RETURN NEW;
 END;
@@ -197,3 +227,11 @@ END $$;
 -- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'worker_profiles';
 
 SELECT 'Complete fix migration applied successfully!' AS result;
+
+-- ── STEP 8: Backfill missing worker_profiles ─────────────────────────────────
+-- Safely repairs any existing workers that are missing a worker_profiles row
+INSERT INTO public.worker_profiles (user_id, approval_status)
+SELECT p.id, 'pending'
+FROM public.profiles p
+LEFT JOIN public.worker_profiles wp ON wp.user_id = p.id
+WHERE p.role = 'worker' AND wp.user_id IS NULL;

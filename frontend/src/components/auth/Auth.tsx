@@ -50,8 +50,8 @@ export function Auth() {
 
     try {
       // ── Step 1: Sign up with Supabase Auth ────────────────────────────────
-      // Pass metadata so handle_new_user() trigger sets the correct role and name.
-      // NOTE: The trigger enforces that 'admin' cannot be set via this path.
+      // Pass all metadata so handle_new_user() trigger creates both the
+      // profiles and worker_profiles securely immediately.
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -60,6 +60,12 @@ export function Auth() {
             full_name: form.fullName,
             // Only 'customer' or 'worker' — trigger blocks 'admin'
             role: role as 'customer' | 'worker',
+            phone: form.phone,
+            address: form.address,
+            skills: role === 'worker' ? form.skills : null,
+            experience_years: role === 'worker' ? Number(form.experienceYears) || 0 : null,
+            hourly_rate: role === 'worker' ? Number(form.hourlyRate) || 0 : null,
+            working_hours: role === 'worker' ? form.workingHours : null,
           },
         },
       });
@@ -80,65 +86,16 @@ export function Auth() {
 
       // ── Step 2: Handle email confirmation case ────────────────────────────
       // If Supabase requires email confirmation, data.session will be null.
-      // In this case we cannot write to the database (RLS requires an authenticated session).
-      // The handle_new_user trigger has already created a profile row via SECURITY DEFINER.
+      // However, the handle_new_user trigger has ALREADY created both the profile
+      // and worker_profile via SECURITY DEFINER. No data loss occurs here.
       if (!data.session) {
-        // Email confirmation is required — the trigger already set the role.
-        // Worker profile will need to be created after email confirmation + login.
-        // We inform the user and exit cleanly.
         setAwaitingEmailConfirm(true);
         setAuthLoading(false);
         return;
       }
 
-      // ── Step 3: Upsert the full profile with all registration fields ──────
-      // The trigger may have already created a minimal profile row.
-      // We upsert to ensure phone, address, and the correct role are saved.
-      // SECURITY: We never write role='admin' here.
-      const safeRole: 'customer' | 'worker' = role === 'worker' ? 'worker' : 'customer';
-
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: data.user.id,
-        email: form.email,
-        full_name: form.fullName,
-        phone: form.phone,
-        address: form.address,
-        role: safeRole,
-      }, { onConflict: 'id' });
-
-      if (profileError) {
-        console.error('Profile upsert error:', profileError);
-        throw new Error(`Profile setup failed: ${profileError.message}. Code: ${profileError.code}`);
-      }
-
-      // ── Step 4: Create worker profile (workers only) ──────────────────────
+      // ── Step 3: Registration Complete (Email Confirmation Disabled) ───────
       if (role === 'worker') {
-        const skillsArray = form.skills.split(',').map((s) => s.trim()).filter(Boolean);
-
-        // Use UPSERT (onConflict: user_id) to safely handle:
-        // - Fresh registrations (INSERT)
-        // - Retry attempts where profile was created but worker_profile failed (UPDATE)
-        // This prevents unique constraint errors on re-registration.
-        const { error: workerError } = await supabase.from('worker_profiles').upsert({
-          user_id: data.user.id,
-          skills: skillsArray,
-          experience_years: Number(form.experienceYears) || 0,
-          hourly_rate: Number(form.hourlyRate) || 0,
-          working_hours: form.workingHours,
-          // Explicitly set pending — never trust client to set approved
-          approval_status: 'pending',
-        }, { onConflict: 'user_id' });
-
-        if (workerError) {
-          console.error('Worker profile upsert error:', workerError);
-          // Provide the real error so it can be debugged — registration is NOT complete
-          throw new Error(
-            `Worker profile setup failed: ${workerError.message}` +
-            (workerError.hint ? ` Hint: ${workerError.hint}` : '') +
-            (workerError.code ? ` (Code: ${workerError.code})` : '')
-          );
-        }
-
         // Success for worker — show pending approval message
         setSuccess(true);
       } else {
@@ -245,7 +202,7 @@ export function Auth() {
           </p>
           <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
             {role === 'worker'
-              ? 'Your worker profile will be set up when you sign in after confirming your email.'
+              ? 'Your worker profile has been securely created and will be pending admin approval after you confirm your email.'
               : ''}
           </p>
           <button className="primary-button" onClick={() => { setAwaitingEmailConfirm(false); setAuthMode('login'); }}>
