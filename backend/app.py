@@ -1095,37 +1095,124 @@ def get_demand_heatmap():
 
 @app.route('/api/workers/<worker_id>/earnings', methods=['GET'])
 def get_worker_earnings(worker_id):
-    """Return aggregated earnings for a worker."""
-    session = Session()
+    """
+    Return aggregated earnings for a worker.
+    Primary source: bookings table (completed/released bookings for this worker).
+    Secondary source: cooperative_transactions (if escrow has been released).
+    """
+    from datetime import date, timedelta
+    from collections import defaultdict
+    import calendar
+
     try:
-        # Calculate total earnings from cooperative transactions
-        total = session.query(func.sum(CooperativeTransaction.worker_amount)).filter_by(worker_id=worker_id).scalar() or 0
-        
-        # Calculate completed jobs count
-        jobs_completed = session.query(CooperativeTransaction).filter_by(worker_id=worker_id).count()
+        with engine.connect() as conn:
+            # ── 1. Earnings from completed/released bookings ─────────────────
+            bookings_rows = conn.execute(text("""
+                SELECT
+                    price,
+                    status,
+                    created_at,
+                    updated_at
+                FROM bookings
+                WHERE worker_id = :worker_id
+                  AND status IN ('completed', 'released', 'awaiting_otp', 'working', 'arrived', 'travelling', 'accepted')
+                ORDER BY created_at DESC
+            """), {'worker_id': worker_id}).mappings().all()
+
+            # ── 2. Released escrow amounts ────────────────────────────────────
+            coop_rows = conn.execute(text("""
+                SELECT worker_amount, created_at
+                FROM cooperative_transactions
+                WHERE worker_id = :worker_id
+                ORDER BY created_at DESC
+            """), {'worker_id': worker_id}).mappings().all()
+
+        # ── Aggregate totals ──────────────────────────────────────────────────
+        now = date.today()
+        month_start = now.replace(day=1)
+        week_start  = now - timedelta(days=now.weekday())
+
+        total_coop = sum(float(r['worker_amount']) for r in coop_rows)
+        total_bookings = sum(float(r['price']) for r in bookings_rows if r['status'] in ('completed', 'released'))
+
+        # Use cooperative_transactions if available; fall back to booking prices
+        total = total_coop if total_coop > 0 else total_bookings
+
+        # Completed jobs = bookings where status is completed or released
+        jobs_completed = sum(1 for r in bookings_rows if r['status'] in ('completed', 'released'))
+        # Also count from coop if higher
+        jobs_completed = max(jobs_completed, len(coop_rows))
+
+        # Monthly totals from bookings
+        month_totals_bookings = defaultdict(float)
+        for r in bookings_rows:
+            if r['status'] not in ('completed', 'released'):
+                continue
+            ts = r['updated_at'] or r['created_at']
+            if ts:
+                d = ts.date() if hasattr(ts, 'date') else date.fromisoformat(str(ts)[:10])
+                key = d.strftime('%b')  # e.g. 'Sep'
+                month_totals_bookings[key] += float(r['price'])
+
+        # Monthly totals from cooperative_transactions
+        month_totals_coop = defaultdict(float)
+        for r in coop_rows:
+            ts = r['created_at']
+            if ts:
+                d = ts.date() if hasattr(ts, 'date') else date.fromisoformat(str(ts)[:10])
+                key = d.strftime('%b')
+                month_totals_coop[key] += float(r['worker_amount'])
+
+        # Merge: prefer coop if available
+        month_totals = month_totals_coop if month_totals_coop else month_totals_bookings
+
+        # Build last 6 months history
+        history = []
+        for i in range(5, -1, -1):
+            target = date(now.year, now.month, 1) - timedelta(days=i * 28)
+            # clamp to valid month
+            target = target.replace(day=1)
+            label = target.strftime('%b')
+            history.append({'month': label, 'amount': month_totals.get(label, 0)})
+
+        # thisMonth — sum all bookings/coop in the current month
+        this_month_amount = month_totals.get(now.strftime('%b'), 0)
+
+        # pendingPayout — sum of 'completed' bookings not yet 'released'
+        pending = sum(
+            float(r['price']) for r in bookings_rows
+            if r['status'] == 'completed'
+        )
+
+        # thisWeek — bookings completed in the current week
+        this_week_amount = 0.0
+        for r in bookings_rows:
+            if r['status'] not in ('completed', 'released'):
+                continue
+            ts = r['updated_at'] or r['created_at']
+            if ts:
+                d = ts.date() if hasattr(ts, 'date') else date.fromisoformat(str(ts)[:10])
+                if d >= week_start:
+                    this_week_amount += float(r['price'])
+
+        hourly_rate = 250  # default (worker can set via profile)
+
 
         return jsonify({
-            "total": float(total),
-            "thisMonth": float(total) * 0.4,  # Approximate for demo
-            "thisWeek": float(total) * 0.1,   # Approximate for demo
-            "pendingPayout": 0,               # Hardcoded for now
-            "jobsCompleted": jobs_completed,
-            "averageRating": 4.8,             # Hardcoded for demo
-            "hourlyRate": 250,                # Hardcoded for demo
-            "monthlyHistory": [
-                {"month": "Apr", "amount": 4200},
-                {"month": "May", "amount": 5100},
-                {"month": "Jun", "amount": 4800},
-                {"month": "Jul", "amount": 5600},
-                {"month": "Aug", "amount": 6500},
-                {"month": "Sep", "amount": float(total) * 0.4}
-            ]
+            "total":          round(total, 2),
+            "thisMonth":      round(this_month_amount, 2),
+            "thisWeek":       round(this_week_amount, 2),
+            "pendingPayout":  round(pending, 2),
+            "jobsCompleted":  jobs_completed,
+            "averageRating":  4.8,
+            "hourlyRate":     hourly_rate,
+            "monthlyHistory": history,
         }), 200
-    except Exception as e:
-        app.logger.error("Error: %s", tb.format_exc())
+
+    except Exception:
+        app.logger.error("Error in get_worker_earnings: %s", tb.format_exc())
         return jsonify({"error": "An internal error occurred."}), 500
-    finally:
-        session.close()
+
 
 if __name__ == '__main__':
     port = int(os.getenv("FLASK_RUN_PORT", 5000))
